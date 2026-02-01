@@ -1,12 +1,13 @@
 ---
 import BenchmarkLayout from '../../layouts/BenchmarkLayout.astro';
-import { agents, valueSystems } from '../../data/benchmark';
+import { agents, valueSystems, cases } from '../../data/benchmark';
 const serializedAgents = JSON.stringify(agents);
 const serializedSystems = JSON.stringify(valueSystems);
+const serializedCases = JSON.stringify(cases);
 ---
 <BenchmarkLayout activeTab="benchmarks">
   <div class="space-y-10">
-    <section class="card p-6">
+    <section class="card p-6" data-tab-panel="benchmarks">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div class="text-xs uppercase tracking-wide text-ink-500">Value System Focus</div>
@@ -26,213 +27,629 @@ const serializedSystems = JSON.stringify(valueSystems);
         ))}
       </div>
       <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3" id="dimensionScoreGrid"></div>
+
+      <div class="mt-10 border-t border-ink-100 pt-8">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div class="text-xs uppercase tracking-wide text-ink-500">Leaderboard</div>
+            <div class="mt-2 font-display text-2xl font-semibold text-ink-900">Agent ranking for selected dimensions</div>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <input
+              id="agentSearch"
+              type="text"
+              placeholder="Search agent..."
+              class="rounded-full border border-ink-200 bg-white/80 px-4 py-2 text-sm"
+            />
+            <select id="sortSelect" class="rounded-full border border-ink-200 bg-white/80 px-3 py-2 text-sm">
+              <option value="score-desc">Score (high → low)</option>
+              <option value="score-asc">Score (low → high)</option>
+              <option value="name-asc">Name (A → Z)</option>
+            </select>
+          </div>
+        </div>
+        <div class="mt-6 overflow-auto">
+          <table class="w-full min-w-[900px] text-left text-sm">
+            <thead class="text-xs uppercase text-ink-500">
+              <tr>
+                <th class="py-3 pr-4">Rank</th>
+                <th class="py-3 pr-4">Agent Name</th>
+                <th class="py-3 pr-4">Developer</th>
+                <th class="py-3 pr-4">Score</th>
+                <th class="py-3 pr-4">Release Date</th>
+                <th class="py-3 pr-4">Compare</th>
+                <th class="py-3">Details</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody" class="text-ink-700"></tbody>
+          </table>
+        </div>
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-ink-600">
+          <div id="pageInfo"></div>
+          <div class="flex gap-2">
+            <button class="btn-ghost" type="button" id="prevPage">Prev</button>
+            <button class="btn-ghost" type="button" id="nextPage">Next</button>
+          </div>
+        </div>
+      </div>
     </section>
 
-    <section class="card p-6">
+    <section class="card p-6" data-tab-panel="analysis" hidden>
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div class="text-xs uppercase tracking-wide text-ink-500">Leaderboard</div>
-          <div class="mt-2 font-display text-2xl font-semibold text-ink-900">Agent ranking for selected dimensions</div>
+          <div class="text-xs uppercase tracking-wide text-ink-500">Agent Analysis</div>
+          <div class="mt-2 font-display text-2xl font-semibold text-ink-900">Single agent profile</div>
         </div>
-        <div class="flex flex-wrap gap-3">
-          <input
-            id="agentSearch"
-            type="text"
-            placeholder="Search agent..."
-            class="rounded-full border border-ink-200 bg-white/80 px-4 py-2 text-sm"
-          />
-          <select id="sortSelect" class="rounded-full border border-ink-200 bg-white/80 px-3 py-2 text-sm">
-            <option value="score-desc">Score (high → low)</option>
-            <option value="score-asc">Score (low → high)</option>
-            <option value="name-asc">Name (A → Z)</option>
+        <button class="btn-ghost" type="button">Download (this agent results)</button>
+      </div>
+      <div class="mt-6 grid gap-6 lg:grid-cols-[240px,1fr]">
+        <div>
+          <label class="text-xs uppercase tracking-wide text-ink-500">Select Agent</label>
+          <select id="agentSelect" class="mt-2 w-full rounded-xl border border-ink-200 bg-white/80 px-3 py-2 text-sm">
+            {agents.map((agent) => (
+              <option value={agent.id}>{agent.name}</option>
+            ))}
+          </select>
+          <div class="mt-4 space-y-2 text-sm text-ink-600" id="agentMeta"></div>
+        </div>
+        <div class="grid gap-6 lg:grid-cols-2">
+          <div class="rounded-2xl border border-ink-100 bg-white/80 p-5">
+            <div class="text-sm font-semibold text-ink-800">Radar: Value dimensions</div>
+            <div class="mt-4" id="radarChart"></div>
+          </div>
+          <div class="rounded-2xl border border-ink-100 bg-white/80 p-5">
+            <div class="text-sm font-semibold text-ink-800">Bars: Dimension scores</div>
+            <div class="mt-4 space-y-3" id="barChart"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-10 border-t border-ink-100 pt-8">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div class="text-xs uppercase tracking-wide text-ink-500">Case Evidence</div>
+            <div class="mt-2 font-display text-2xl font-semibold text-ink-900">Model behavior snapshots</div>
+          </div>
+          <div class="text-sm text-ink-500">Placeholder cases (future evidence support)</div>
+        </div>
+        <div class="mt-6 grid gap-4 md:grid-cols-2" id="caseList"></div>
+        <div class="mt-6 flex items-center justify-end gap-2 text-sm">
+          <button class="btn-ghost" type="button">Previous</button>
+          <button class="btn-ghost" type="button">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="card p-6" data-tab-panel="comparison" hidden>
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="text-xs uppercase tracking-wide text-ink-500">Comparison</div>
+          <div class="mt-2 font-display text-2xl font-semibold text-ink-900">Compare multiple agents</div>
+        </div>
+        <button class="btn-ghost" type="button" id="swapAgents">Swap A / B</button>
+      </div>
+      <div class="mt-6 grid gap-4 lg:grid-cols-3">
+        <div>
+          <label class="text-xs uppercase tracking-wide text-ink-500">Agent A</label>
+          <select id="agentA" class="mt-2 w-full rounded-xl border border-ink-200 bg-white/80 px-3 py-2 text-sm">
+            {agents.map((agent) => (
+              <option value={agent.id}>{agent.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label class="text-xs uppercase tracking-wide text-ink-500">Agent B</label>
+          <select id="agentB" class="mt-2 w-full rounded-xl border border-ink-200 bg-white/80 px-3 py-2 text-sm">
+            {agents.map((agent) => (
+              <option value={agent.id}>{agent.name}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label class="text-xs uppercase tracking-wide text-ink-500">Agent C</label>
+          <select id="agentC" class="mt-2 w-full rounded-xl border border-ink-200 bg-white/80 px-3 py-2 text-sm">
+            {agents.map((agent) => (
+              <option value={agent.id}>{agent.name}</option>
+            ))}
           </select>
         </div>
       </div>
-      <div class="mt-6 overflow-auto">
-        <table class="w-full min-w-[900px] text-left text-sm">
-          <thead class="text-xs uppercase text-ink-500">
-            <tr>
-              <th class="py-3 pr-4">Rank</th>
-              <th class="py-3 pr-4">Agent Name</th>
-              <th class="py-3 pr-4">Developer</th>
-              <th class="py-3 pr-4">Score</th>
-              <th class="py-3 pr-4">Release Date</th>
-              <th class="py-3 pr-4">Compare</th>
-              <th class="py-3">Details</th>
-            </tr>
-          </thead>
-          <tbody id="leaderboardBody" class="text-ink-700"></tbody>
-        </table>
+
+      <div class="mt-8 grid gap-6 lg:grid-cols-[1fr,1fr]">
+        <div class="rounded-2xl border border-ink-100 bg-white/80 p-5">
+          <div class="text-sm font-semibold text-ink-800">Radar overlay</div>
+          <div class="mt-4" id="comparisonRadar"></div>
+          <div class="mt-4 flex flex-wrap gap-3 text-xs text-ink-600" id="legend"></div>
+        </div>
+        <div class="rounded-2xl border border-ink-100 bg-white/80 p-5">
+          <div class="text-sm font-semibold text-ink-800">Dimension comparison</div>
+          <div class="mt-4 overflow-auto">
+            <table class="w-full min-w-[420px] text-left text-sm">
+              <thead class="text-xs uppercase text-ink-500">
+                <tr>
+                  <th class="py-2 pr-4">Dimension</th>
+                  <th class="py-2 pr-4">A</th>
+                  <th class="py-2 pr-4">B</th>
+                  <th class="py-2">Δ</th>
+                </tr>
+              </thead>
+              <tbody id="comparisonTable"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
-      <div class="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-ink-600">
-        <div id="pageInfo"></div>
-        <div class="flex gap-2">
-          <button class="btn-ghost" type="button" id="prevPage">Prev</button>
-          <button class="btn-ghost" type="button" id="nextPage">Next</button>
+
+      <div class="mt-8 rounded-2xl border border-ink-100 bg-white/80 p-5">
+        <div class="text-xs uppercase tracking-wide text-ink-500">Case-level comparison</div>
+        <div class="mt-2 font-display text-2xl font-semibold text-ink-900">Future evidence workspace</div>
+        <div class="mt-4 text-sm text-ink-600">
+          Placeholder for selecting a dimension + case and comparing multiple model responses side by side.
         </div>
       </div>
     </section>
   </div>
 
   <script>
-    const agents = JSON.parse(`{"agents":${serializedAgents}}`).agents;
-    const systems = JSON.parse(`{"systems":${serializedSystems}}`).systems;
-    const systemTags = document.getElementById('systemTags');
-    const dimensionScoreGrid = document.getElementById('dimensionScoreGrid');
-    const leaderboardBody = document.getElementById('leaderboardBody');
-    const agentSearch = document.getElementById('agentSearch');
-    const sortSelect = document.getElementById('sortSelect');
-    const pageInfo = document.getElementById('pageInfo');
-    const prevPage = document.getElementById('prevPage');
-    const nextPage = document.getElementById('nextPage');
+    (() => {
+      const agents = JSON.parse(`{"agents":${serializedAgents}}`).agents;
+      const systems = JSON.parse(`{"systems":${serializedSystems}}`).systems;
+      const systemTags = document.getElementById('systemTags');
+      const dimensionScoreGrid = document.getElementById('dimensionScoreGrid');
+      const leaderboardBody = document.getElementById('leaderboardBody');
+      const agentSearch = document.getElementById('agentSearch');
+      const sortSelect = document.getElementById('sortSelect');
+      const pageInfo = document.getElementById('pageInfo');
+      const prevPage = document.getElementById('prevPage');
+      const nextPage = document.getElementById('nextPage');
 
-    let page = 1;
-    const pageSize = 5;
+      let page = 1;
+      const pageSize = 5;
 
-    const getFilters = () => {
-      const params = new URLSearchParams(window.location.search);
-      const stored = JSON.parse(localStorage.getItem('avb-filters') || 'null');
-      const system = params.get('system') || stored?.system || systems[0].id;
-      const dims = params.get('dims')?.split(',') || stored?.dims || [];
-      return { system, dims };
-    };
+      const getFilters = () => {
+        const params = new URLSearchParams(window.location.search);
+        const stored = JSON.parse(localStorage.getItem('avb-filters') || 'null');
+        const system = params.get('system') || stored?.system || systems[0].id;
+        const dims = params.get('dims')?.split(',') || stored?.dims || [];
+        return { system, dims };
+      };
 
-    const getSystem = (systemId) => systems.find((s) => s.id === systemId) || systems[0];
+      const getSystem = (systemId) => systems.find((s) => s.id === systemId) || systems[0];
 
-    const averageScore = (agent, systemId, dims) => {
-      const systemDims = getSystem(systemId).dimensions.map((d) => d.id);
-      const dimsToUse = dims.length ? dims : systemDims;
-      const scores = agent.scores.filter((score) => score.systemId === systemId && dimsToUse.includes(score.dimensionId));
-      if (!scores.length) return 0;
-      const total = scores.reduce((sum, s) => sum + s.score, 0);
-      return Math.round(total / scores.length);
-    };
+      const averageScore = (agent, systemId, dims) => {
+        const systemDims = getSystem(systemId).dimensions.map((d) => d.id);
+        const dimsToUse = dims.length ? dims : systemDims;
+        const scores = agent.scores.filter((score) => score.systemId === systemId && dimsToUse.includes(score.dimensionId));
+        if (!scores.length) return 0;
+        const total = scores.reduce((sum, s) => sum + s.score, 0);
+        return Math.round(total / scores.length);
+      };
 
-    const renderDimensionGrid = () => {
-      const { system, dims } = getFilters();
-      const systemData = getSystem(system);
-      dimensionScoreGrid.innerHTML = '';
-      systemData.dimensions.forEach((dim) => {
-        const avg = Math.round(
-          agents.reduce((sum, agent) => {
-            const score = agent.scores.find((s) => s.systemId === system && s.dimensionId === dim.id)?.score || 0;
-            return sum + score;
-          }, 0) / agents.length
-        );
-        const isActive = !dims.length || dims.includes(dim.id);
-        const card = document.createElement('div');
-        card.className = `rounded-2xl border px-4 py-4 ${isActive ? 'border-ink-200 bg-white/80' : 'border-ink-100 bg-white/50 opacity-60'}`;
-        card.innerHTML = `
-          <div class="text-sm font-semibold text-ink-800">${dim.name}</div>
-          <div class="mt-1 text-xs text-ink-500">${dim.description}</div>
-          <div class="mt-4 flex items-end justify-between">
-            <div class="text-xs uppercase tracking-wide text-ink-400">Avg score</div>
-            <div class="font-display text-2xl font-semibold text-ink-900">${avg}</div>
-          </div>
-        `;
-        dimensionScoreGrid.appendChild(card);
-      });
-    };
+      const renderDimensionGrid = () => {
+        const { system, dims } = getFilters();
+        const systemData = getSystem(system);
+        dimensionScoreGrid.innerHTML = '';
+        systemData.dimensions.forEach((dim) => {
+          const avg = Math.round(
+            agents.reduce((sum, agent) => {
+              const score = agent.scores.find((s) => s.systemId === system && s.dimensionId === dim.id)?.score || 0;
+              return sum + score;
+            }, 0) / agents.length
+          );
+          const isActive = !dims.length || dims.includes(dim.id);
+          const card = document.createElement('div');
+          card.className = `rounded-2xl border px-4 py-4 ${isActive ? 'border-ink-200 bg-white/80' : 'border-ink-100 bg-white/50 opacity-60'}`;
+          card.innerHTML = `
+            <div class="text-sm font-semibold text-ink-800">${dim.name}</div>
+            <div class="mt-1 text-xs text-ink-500">${dim.description}</div>
+            <div class="mt-4 flex items-end justify-between">
+              <div class="text-xs uppercase tracking-wide text-ink-400">Avg score</div>
+              <div class="font-display text-2xl font-semibold text-ink-900">${avg}</div>
+            </div>
+          `;
+          dimensionScoreGrid.appendChild(card);
+        });
+      };
 
-    const renderTable = () => {
-      const { system, dims } = getFilters();
-      const search = agentSearch.value.toLowerCase();
-      const rows = agents
-        .filter((agent) => agent.name.toLowerCase().includes(search))
-        .map((agent) => ({
-          ...agent,
-          score: averageScore(agent, system, dims),
-        }));
+      const renderTable = () => {
+        const { system, dims } = getFilters();
+        const search = agentSearch.value.toLowerCase();
+        const rows = agents
+          .filter((agent) => agent.name.toLowerCase().includes(search))
+          .map((agent) => ({
+            ...agent,
+            score: averageScore(agent, system, dims),
+          }));
 
-      const sorted = rows.sort((a, b) => {
-        if (sortSelect.value === 'score-asc') return a.score - b.score;
-        if (sortSelect.value === 'name-asc') return a.name.localeCompare(b.name);
-        return b.score - a.score;
-      });
+        const sorted = rows.sort((a, b) => {
+          if (sortSelect.value === 'score-asc') return a.score - b.score;
+          if (sortSelect.value === 'name-asc') return a.name.localeCompare(b.name);
+          return b.score - a.score;
+        });
 
-      const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-      page = Math.min(page, totalPages);
-      const start = (page - 1) * pageSize;
-      const paged = sorted.slice(start, start + pageSize);
-      leaderboardBody.innerHTML = '';
+        const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+        page = Math.min(page, totalPages);
+        const start = (page - 1) * pageSize;
+        const paged = sorted.slice(start, start + pageSize);
+        leaderboardBody.innerHTML = '';
 
-      paged.forEach((agent, index) => {
-        const row = document.createElement('tr');
-        row.className = 'border-t border-ink-100';
-        row.innerHTML = `
-          <td class="py-4 pr-4 font-semibold">${start + index + 1}</td>
-          <td class="py-4 pr-4">
-            <div class="font-semibold text-ink-900">${agent.name}</div>
-            <div class="text-xs text-ink-500">${agent.type}</div>
-          </td>
-          <td class="py-4 pr-4">${agent.developer}</td>
-          <td class="py-4 pr-4">
-            <div class="font-display text-xl font-semibold text-ink-900">${agent.score}</div>
-            <div class="text-xs text-ink-500">avg of selected dims</div>
-          </td>
-          <td class="py-4 pr-4">${agent.releaseDate}</td>
-          <td class="py-4 pr-4">
-            <button class="rounded-full border border-ink-200 px-3 py-1 text-xs font-semibold" data-compare="${agent.id}">+ Compare</button>
-          </td>
-          <td class="py-4">
-            <a class="text-ink-700 underline" href="/benchmark/analysis?agent=${agent.id}">View</a>
-          </td>
-        `;
-        leaderboardBody.appendChild(row);
-      });
+        paged.forEach((agent, index) => {
+          const row = document.createElement('tr');
+          row.className = 'border-t border-ink-100';
+          row.innerHTML = `
+            <td class="py-4 pr-4 font-semibold">${start + index + 1}</td>
+            <td class="py-4 pr-4">
+              <div class="font-semibold text-ink-900">${agent.name}</div>
+              <div class="text-xs text-ink-500">${agent.type}</div>
+            </td>
+            <td class="py-4 pr-4">${agent.developer}</td>
+            <td class="py-4 pr-4">
+              <div class="font-display text-xl font-semibold text-ink-900">${agent.score}</div>
+              <div class="text-xs text-ink-500">avg of selected dims</div>
+            </td>
+            <td class="py-4 pr-4">${agent.releaseDate}</td>
+            <td class="py-4 pr-4">
+              <button class="rounded-full border border-ink-200 px-3 py-1 text-xs font-semibold" data-compare="${agent.id}">+ Compare</button>
+            </td>
+            <td class="py-4">
+              <button class="text-ink-700 underline" data-agent-view="${agent.id}">View</button>
+            </td>
+          `;
+          leaderboardBody.appendChild(row);
+        });
 
-      pageInfo.textContent = `Page ${page} of ${totalPages}`;
-    };
+        pageInfo.textContent = `Page ${page} of ${totalPages}`;
+      };
 
-    const updateTabHighlight = () => {
-      const { system } = getFilters();
-      systemTags.querySelectorAll('button').forEach((btn) => {
-        if (btn.dataset.systemTag === system) {
-          btn.classList.add('bg-ink-900', 'text-ink-50');
-          btn.classList.remove('bg-white/70', 'text-ink-700');
+      const updateTabHighlight = () => {
+        const { system } = getFilters();
+        systemTags.querySelectorAll('button').forEach((btn) => {
+          if (btn.dataset.systemTag === system) {
+            btn.classList.add('bg-ink-900', 'text-ink-50');
+            btn.classList.remove('bg-white/70', 'text-ink-700');
+          } else {
+            btn.classList.remove('bg-ink-900', 'text-ink-50');
+            btn.classList.add('bg-white/70', 'text-ink-700');
+          }
+        });
+      };
+
+      systemTags.addEventListener('click', (event) => {
+        const btn = event.target.closest('button[data-system-tag]');
+        if (!btn) return;
+        window.avbSetSystem(btn.dataset.systemTag);
+        const { system, dims } = window.avbPersistFilters();
+        const params = new URLSearchParams(window.location.search);
+        params.set('system', system);
+        if (dims.length) {
+          params.set('dims', dims.join(','));
         } else {
-          btn.classList.remove('bg-ink-900', 'text-ink-50');
-          btn.classList.add('bg-white/70', 'text-ink-700');
+          params.delete('dims');
         }
+        window.avbUpdateParams(params);
+        window.avbEmitFilters();
       });
-    };
 
-    systemTags.addEventListener('click', (event) => {
-      const btn = event.target.closest('button[data-system-tag]');
-      if (!btn) return;
-      const params = new URLSearchParams(window.location.search);
-      params.set('system', btn.dataset.systemTag);
-      window.location.search = params.toString();
-    });
+      document.addEventListener('click', (event) => {
+        const compare = event.target.closest('[data-compare]');
+        if (compare) {
+          const id = compare.dataset.compare;
+          const stored = JSON.parse(localStorage.getItem('avb-compare') || '[]');
+          if (!stored.includes(id)) {
+            stored.push(id);
+            localStorage.setItem('avb-compare', JSON.stringify(stored));
+          }
+          compare.textContent = 'Added';
+          return;
+        }
+        const view = event.target.closest('[data-agent-view]');
+        if (!view) return;
+        const params = new URLSearchParams(window.location.search);
+        params.set('agent', view.dataset.agentView);
+        params.set('tab', 'analysis');
+        window.avbUpdateParams(params);
+        window.avbSetTab('analysis');
+      });
 
-    document.addEventListener('click', (event) => {
-      const compare = event.target.closest('[data-compare]');
-      if (!compare) return;
-      const id = compare.dataset.compare;
-      const stored = JSON.parse(localStorage.getItem('avb-compare') || '[]');
-      if (!stored.includes(id)) {
-        stored.push(id);
-        localStorage.setItem('avb-compare', JSON.stringify(stored));
-      }
-      compare.textContent = 'Added';
-    });
+      agentSearch.addEventListener('input', () => {
+        page = 1;
+        renderTable();
+      });
+      sortSelect.addEventListener('change', renderTable);
+      prevPage.addEventListener('click', () => {
+        page = Math.max(1, page - 1);
+        renderTable();
+      });
+      nextPage.addEventListener('click', () => {
+        page += 1;
+        renderTable();
+      });
 
-    agentSearch.addEventListener('input', () => {
-      page = 1;
+      window.addEventListener('avb:filters', () => {
+        updateTabHighlight();
+        renderDimensionGrid();
+        renderTable();
+      });
+
+      updateTabHighlight();
+      renderDimensionGrid();
       renderTable();
-    });
-    sortSelect.addEventListener('change', renderTable);
-    prevPage.addEventListener('click', () => {
-      page = Math.max(1, page - 1);
-      renderTable();
-    });
-    nextPage.addEventListener('click', () => {
-      page += 1;
-      renderTable();
-    });
+    })();
+  </script>
 
-    updateTabHighlight();
-    renderDimensionGrid();
-    renderTable();
+  <script>
+    (() => {
+      const agents = JSON.parse(`{"agents":${serializedAgents}}`).agents;
+      const systems = JSON.parse(`{"systems":${serializedSystems}}`).systems;
+      const cases = JSON.parse(`{"cases":${serializedCases}}`).cases;
+
+      const agentSelect = document.getElementById('agentSelect');
+      const agentMeta = document.getElementById('agentMeta');
+      const radarChart = document.getElementById('radarChart');
+      const barChart = document.getElementById('barChart');
+      const caseList = document.getElementById('caseList');
+
+      const getFilters = () => {
+        const params = new URLSearchParams(window.location.search);
+        const stored = JSON.parse(localStorage.getItem('avb-filters') || 'null');
+        return {
+          system: params.get('system') || stored?.system || systems[0].id,
+          dims: params.get('dims')?.split(',') || stored?.dims || [],
+        };
+      };
+
+      const getAgent = (id) => agents.find((agent) => agent.id === id) || agents[0];
+
+      const renderMeta = (agent) => {
+        agentMeta.innerHTML = `
+          <div><strong>Developer:</strong> ${agent.developer}</div>
+          <div><strong>Website/GitHub:</strong> <a class="underline" href="${agent.website}">${agent.website}</a></div>
+          <div><strong>Paper/report:</strong> <a class="underline" href="${agent.paper}">${agent.paper}</a></div>
+          <div><strong>Type:</strong> ${agent.type}</div>
+          <div><strong>Publish date:</strong> ${agent.releaseDate}</div>
+          <div><strong>Measurement date:</strong> ${agent.measurementDate}</div>
+        `;
+      };
+
+      const renderRadar = (agent, systemId, dims) => {
+        const system = systems.find((s) => s.id === systemId) || systems[0];
+        const dimensions = system.dimensions.filter((dim) => !dims.length || dims.includes(dim.id));
+        const size = 220;
+        const center = size / 2;
+        const radius = 80;
+        const points = dimensions.map((dim, index) => {
+          const score = agent.scores.find((s) => s.systemId === systemId && s.dimensionId === dim.id)?.score || 0;
+          const angle = (Math.PI * 2 * index) / dimensions.length - Math.PI / 2;
+          const r = (score / 100) * radius;
+          return {
+            x: center + r * Math.cos(angle),
+            y: center + r * Math.sin(angle),
+            labelX: center + (radius + 18) * Math.cos(angle),
+            labelY: center + (radius + 18) * Math.sin(angle),
+            label: dim.name,
+          };
+        });
+
+        const polygon = points.map((p) => `${p.x},${p.y}`).join(' ');
+
+        radarChart.innerHTML = `
+          <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="mx-auto">
+            <circle cx="${center}" cy="${center}" r="${radius}" fill="none" stroke="#d9d2c7" stroke-dasharray="4 4" />
+            <circle cx="${center}" cy="${center}" r="${radius * 0.66}" fill="none" stroke="#e6dfd5" />
+            <circle cx="${center}" cy="${center}" r="${radius * 0.33}" fill="none" stroke="#efe8dd" />
+            ${points
+              .map(
+                (p) => `<line x1="${center}" y1="${center}" x2="${p.x}" y2="${p.y}" stroke="#e6dfd5" />`
+              )
+              .join('')}
+            <polygon points="${polygon}" fill="rgba(46, 139, 87, 0.35)" stroke="#2e8b57" stroke-width="2" />
+            ${points
+              .map(
+                (p) => `<text x="${p.labelX}" y="${p.labelY}" text-anchor="middle" font-size="10" fill="#6f5435">${p.label}</text>`
+              )
+              .join('')}
+          </svg>
+        `;
+      };
+
+      const renderBars = (agent, systemId, dims) => {
+        const system = systems.find((s) => s.id === systemId) || systems[0];
+        const dimensions = system.dimensions.filter((dim) => !dims.length || dims.includes(dim.id));
+        barChart.innerHTML = '';
+        dimensions.forEach((dim) => {
+          const score = agent.scores.find((s) => s.systemId === systemId && s.dimensionId === dim.id)?.score || 0;
+          const row = document.createElement('div');
+          row.innerHTML = `
+            <div class="flex items-center justify-between text-xs text-ink-600">
+              <span>${dim.name}</span>
+              <span>${score}</span>
+            </div>
+            <div class="mt-2 h-2 rounded-full bg-ink-100">
+              <div class="h-2 rounded-full bg-ink-900" style="width: ${score}%;"></div>
+            </div>
+          `;
+          barChart.appendChild(row);
+        });
+      };
+
+      const renderCases = (systemId, dims) => {
+        const filtered = cases.filter((item) => item.systemId === systemId && (!dims.length || dims.includes(item.dimensionId)));
+        caseList.innerHTML = '';
+        (filtered.length ? filtered : cases).forEach((item) => {
+          const card = document.createElement('div');
+          card.className = 'rounded-2xl border border-ink-100 bg-white/80 p-4';
+          card.innerHTML = `
+            <div class="text-xs uppercase tracking-wide text-ink-400">Case score ${item.score}</div>
+            <div class="mt-2 text-sm font-semibold text-ink-800">${item.question}</div>
+            <div class="mt-2 text-xs text-ink-600">${item.summary}</div>
+            <button class="mt-4 rounded-full border border-ink-200 px-3 py-1 text-xs font-semibold">Copy</button>
+          `;
+          caseList.appendChild(card);
+        });
+      };
+
+      const syncAgentFromQuery = () => {
+        const params = new URLSearchParams(window.location.search);
+        const agentId = params.get('agent');
+        if (agentId && agents.find((a) => a.id === agentId)) {
+          agentSelect.value = agentId;
+        }
+      };
+
+      const renderAll = () => {
+        const { system, dims } = getFilters();
+        const agent = getAgent(agentSelect.value);
+        renderMeta(agent);
+        renderRadar(agent, system, dims);
+        renderBars(agent, system, dims);
+        renderCases(system, dims);
+      };
+
+      syncAgentFromQuery();
+      renderAll();
+
+      agentSelect.addEventListener('change', () => {
+        const params = new URLSearchParams(window.location.search);
+        params.set('agent', agentSelect.value);
+        window.avbUpdateParams(params);
+        renderAll();
+      });
+
+      window.addEventListener('avb:filters', renderAll);
+      window.addEventListener('avb:tab', syncAgentFromQuery);
+    })();
+  </script>
+
+  <script>
+    (() => {
+      const agents = JSON.parse(`{"agents":${serializedAgents}}`).agents;
+      const systems = JSON.parse(`{"systems":${serializedSystems}}`).systems;
+
+      const agentA = document.getElementById('agentA');
+      const agentB = document.getElementById('agentB');
+      const agentC = document.getElementById('agentC');
+      const swapAgents = document.getElementById('swapAgents');
+      const comparisonRadar = document.getElementById('comparisonRadar');
+      const comparisonTable = document.getElementById('comparisonTable');
+      const legend = document.getElementById('legend');
+
+      const getFilters = () => {
+        const params = new URLSearchParams(window.location.search);
+        const stored = JSON.parse(localStorage.getItem('avb-filters') || 'null');
+        return {
+          system: params.get('system') || stored?.system || systems[0].id,
+          dims: params.get('dims')?.split(',') || stored?.dims || [],
+        };
+      };
+
+      const getAgent = (id) => agents.find((agent) => agent.id === id) || agents[0];
+
+      const loadCompareFromStorage = () => {
+        const stored = JSON.parse(localStorage.getItem('avb-compare') || '[]');
+        if (stored.length) {
+          agentA.value = stored[0] || agents[0].id;
+          agentB.value = stored[1] || agents[1]?.id || agents[0].id;
+          agentC.value = stored[2] || agents[2]?.id || agents[0].id;
+        } else {
+          agentA.value = agents[0].id;
+          agentB.value = agents[1]?.id || agents[0].id;
+          agentC.value = agents[2]?.id || agents[0].id;
+        }
+      };
+
+      const renderRadar = (agentList, systemId, dims) => {
+        const system = systems.find((s) => s.id === systemId) || systems[0];
+        const dimensions = system.dimensions.filter((dim) => !dims.length || dims.includes(dim.id));
+        const size = 240;
+        const center = size / 2;
+        const radius = 80;
+        const colors = ['#2e8b57', '#5a64ff', '#f39b33'];
+
+        const polygonFor = (agent) =>
+          dimensions
+            .map((dim, index) => {
+              const score = agent.scores.find((s) => s.systemId === systemId && s.dimensionId === dim.id)?.score || 0;
+              const angle = (Math.PI * 2 * index) / dimensions.length - Math.PI / 2;
+              const r = (score / 100) * radius;
+              const x = center + r * Math.cos(angle);
+              const y = center + r * Math.sin(angle);
+              return `${x},${y}`;
+            })
+            .join(' ');
+
+        comparisonRadar.innerHTML = `
+          <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="mx-auto">
+            <circle cx="${center}" cy="${center}" r="${radius}" fill="none" stroke="#d9d2c7" stroke-dasharray="4 4" />
+            <circle cx="${center}" cy="${center}" r="${radius * 0.66}" fill="none" stroke="#e6dfd5" />
+            <circle cx="${center}" cy="${center}" r="${radius * 0.33}" fill="none" stroke="#efe8dd" />
+            ${dimensions
+              .map((_, index) => {
+                const angle = (Math.PI * 2 * index) / dimensions.length - Math.PI / 2;
+                const x = center + radius * Math.cos(angle);
+                const y = center + radius * Math.sin(angle);
+                return `<line x1="${center}" y1="${center}" x2="${x}" y2="${y}" stroke="#e6dfd5" />`;
+              })
+              .join('')}
+            ${agentList
+              .map(
+                (agent, index) =>
+                  `<polygon points="${polygonFor(agent)}" fill="${colors[index]}33" stroke="${colors[index]}" stroke-width="2" />`
+              )
+              .join('')}
+          </svg>
+        `;
+      };
+
+      const renderTable = (agentOne, agentTwo, systemId, dims) => {
+        const system = systems.find((s) => s.id === systemId) || systems[0];
+        const dimensions = system.dimensions.filter((dim) => !dims.length || dims.includes(dim.id));
+        comparisonTable.innerHTML = '';
+        dimensions.forEach((dim) => {
+          const scoreA = agentOne.scores.find((s) => s.systemId === systemId && s.dimensionId === dim.id)?.score || 0;
+          const scoreB = agentTwo.scores.find((s) => s.systemId === systemId && s.dimensionId === dim.id)?.score || 0;
+          const delta = scoreA - scoreB;
+          const row = document.createElement('tr');
+          row.className = 'border-t border-ink-100';
+          row.innerHTML = `
+            <td class="py-3 pr-4">${dim.name}</td>
+            <td class="py-3 pr-4">${scoreA}</td>
+            <td class="py-3 pr-4">${scoreB}</td>
+            <td class="py-3 ${delta >= 0 ? 'text-moss-700' : 'text-amber-700'}">${delta > 0 ? '+' : ''}${delta}</td>
+          `;
+          comparisonTable.appendChild(row);
+        });
+      };
+
+      const renderLegend = (agentList) => {
+        const colors = ['#2e8b57', '#5a64ff', '#f39b33'];
+        legend.innerHTML = '';
+        agentList.forEach((agent, index) => {
+          const item = document.createElement('div');
+          item.className = 'flex items-center gap-2';
+          item.innerHTML = `<span class="h-2 w-2 rounded-full" style="background:${colors[index]}"></span>${agent.name}`;
+          legend.appendChild(item);
+        });
+      };
+
+      const renderAll = () => {
+        const { system, dims } = getFilters();
+        const list = [getAgent(agentA.value), getAgent(agentB.value), getAgent(agentC.value)];
+        renderRadar(list, system, dims);
+        renderTable(list[0], list[1], system, dims);
+        renderLegend(list);
+      };
+
+      loadCompareFromStorage();
+      renderAll();
+
+      [agentA, agentB, agentC].forEach((select) => select.addEventListener('change', renderAll));
+      swapAgents.addEventListener('click', () => {
+        const temp = agentA.value;
+        agentA.value = agentB.value;
+        agentB.value = temp;
+        renderAll();
+      });
+
+      window.addEventListener('avb:filters', renderAll);
+    })();
   </script>
 </BenchmarkLayout>

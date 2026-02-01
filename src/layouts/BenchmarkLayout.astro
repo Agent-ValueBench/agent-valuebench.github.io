@@ -3,9 +3,9 @@ import BaseLayout from './BaseLayout.astro';
 import { valueSystems } from '../data/benchmark';
 const { activeTab } = Astro.props;
 const tabs = [
-  { id: 'benchmarks', label: 'Benchmarks', href: '/benchmark' },
-  { id: 'analysis', label: 'Analysis', href: '/benchmark/analysis' },
-  { id: 'comparison', label: 'Comparison', href: '/benchmark/comparison' },
+  { id: 'benchmarks', label: 'Benchmarks' },
+  { id: 'analysis', label: 'Analysis' },
+  { id: 'comparison', label: 'Comparison' },
 ];
 const defaultSystem = valueSystems[0];
 const serializedSystems = JSON.stringify(valueSystems);
@@ -53,9 +53,10 @@ const serializedSystems = JSON.stringify(valueSystems);
     <div class="flex flex-wrap items-center justify-between gap-4 border-b border-ink-100 pb-3">
       <div class="flex gap-2">
         {tabs.map((tab) => (
-          <a
-            href={tab.href}
+          <button
+            type="button"
             data-tab-link
+            data-tab-id={tab.id}
             class={
               'rounded-full px-4 py-2 text-sm font-semibold transition ' +
               (activeTab === tab.id
@@ -64,7 +65,7 @@ const serializedSystems = JSON.stringify(valueSystems);
             }
           >
             {tab.label}
-          </a>
+          </button>
         ))}
       </div>
       <div class="text-xs text-ink-500">Filters stay consistent across tabs.</div>
@@ -132,6 +133,7 @@ const serializedSystems = JSON.stringify(valueSystems);
     const applyFilters = document.getElementById('applyFilters');
     const resetFilters = document.getElementById('resetFilters');
     const tabLinks = document.querySelectorAll('[data-tab-link]');
+    const tabPanels = document.querySelectorAll('[data-tab-panel]');
 
     const paramSystem = new URLSearchParams(window.location.search).get('system');
     const paramDims = new URLSearchParams(window.location.search).get('dims');
@@ -193,8 +195,49 @@ const serializedSystems = JSON.stringify(valueSystems);
       sessionStorage.setItem('avb-scroll', String(window.scrollY));
     };
 
+    const updateUrlParams = (params) => {
+      const url = new URL(window.location.href);
+      url.search = params.toString();
+      history.replaceState({}, '', url);
+    };
+
+    const emitFilters = () => {
+      window.dispatchEvent(new CustomEvent('avb:filters'));
+    };
+
+    const setTab = (tabId, updateUrl = true) => {
+      tabPanels.forEach((panel) => {
+        panel.hidden = panel.dataset.tabPanel !== tabId;
+      });
+      tabLinks.forEach((btn) => {
+        if (btn.dataset.tabId === tabId) {
+          btn.classList.add('bg-ink-900', 'text-ink-50');
+          btn.classList.remove('bg-white/70', 'text-ink-700');
+        } else {
+          btn.classList.remove('bg-ink-900', 'text-ink-50');
+          btn.classList.add('bg-white/70', 'text-ink-700');
+        }
+      });
+      if (updateUrl) {
+        const params = new URLSearchParams(window.location.search);
+        params.set('tab', tabId);
+        updateUrlParams(params);
+      }
+      window.dispatchEvent(new CustomEvent('avb:tab', { detail: tabId }));
+    };
+
+    const setSystem = (systemId) => {
+      systemSelect.value = systemId;
+      renderDimensions(systemId, []);
+    };
+
+    window.avbSetTab = setTab;
+    window.avbUpdateParams = updateUrlParams;
+    window.avbEmitFilters = emitFilters;
+    window.avbPersistFilters = persistFilters;
+    window.avbSetSystem = setSystem;
+
     applyFilters.addEventListener('click', () => {
-      saveScroll();
       const { system, dims } = persistFilters();
       const params = new URLSearchParams(window.location.search);
       params.set('system', system);
@@ -203,24 +246,30 @@ const serializedSystems = JSON.stringify(valueSystems);
       } else {
         params.delete('dims');
       }
-      window.location.search = params.toString();
+      updateUrlParams(params);
+      emitFilters();
     });
 
     resetFilters.addEventListener('click', () => {
-      saveScroll();
       localStorage.removeItem('avb-filters');
-      window.location.search = '';
+      systemSelect.value = valueSystems[0].id;
+      renderDimensions(systemSelect.value, []);
+      const params = new URLSearchParams(window.location.search);
+      params.delete('system');
+      params.delete('dims');
+      updateUrlParams(params);
+      emitFilters();
     });
 
-    tabLinks.forEach((link) => {
-      const url = new URL(link.href);
-      const params = new URLSearchParams(window.location.search);
-      if (params.toString()) {
-        url.search = params.toString();
-      }
-      link.href = url.toString();
-      link.addEventListener('click', () => saveScroll());
+    tabLinks.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const tabId = btn.dataset.tabId;
+        setTab(tabId);
+      });
     });
+
+    const initialTab = new URLSearchParams(window.location.search).get('tab') || 'benchmarks';
+    setTab(initialTab, false);
 
     window.addEventListener('pagehide', saveScroll);
     document.addEventListener('visibilitychange', () => {
