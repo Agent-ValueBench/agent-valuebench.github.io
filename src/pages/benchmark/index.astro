@@ -1,9 +1,31 @@
 ---
 import BenchmarkLayout from '../../layouts/BenchmarkLayout.astro';
 import { agents, valueSystems, cases } from '../../data/benchmark';
+
 const serializedAgents = JSON.stringify(agents);
 const serializedSystems = JSON.stringify(valueSystems);
 const serializedCases = JSON.stringify(cases);
+
+const searchParams = Astro.url.searchParams;
+const systemParam = searchParams.get('system');
+const dimsParam = searchParams.get('dims');
+const initialSystem =
+  valueSystems.find((system) => system.id === systemParam) || valueSystems[0];
+const initialDims = dimsParam ? dimsParam.split(',') : initialSystem.dimensions.map((dim) => dim.id);
+const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.map((dim) => dim.id);
+
+const averageScore = (agent) => {
+  const scores = agent.scores.filter(
+    (score) => score.systemId === initialSystem.id && dimsToUse.includes(score.dimensionId)
+  );
+  if (!scores.length) return 0;
+  const total = scores.reduce((sum, s) => sum + s.score, 0);
+  return Math.round(total / scores.length);
+};
+
+const sortedAgents = [...agents]
+  .map((agent) => ({ ...agent, avgScore: averageScore(agent) }))
+  .sort((a, b) => b.avgScore - a.avgScore);
 ---
 <BenchmarkLayout activeTab="benchmarks">
   <div class="space-y-10">
@@ -26,7 +48,34 @@ const serializedCases = JSON.stringify(cases);
           </button>
         ))}
       </div>
-      <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3" id="dimensionScoreGrid"></div>
+      <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3" id="dimensionScoreGrid">
+        {initialSystem.dimensions.map((dim) => {
+          const avg = Math.round(
+            agents.reduce((sum, agent) => {
+              const score =
+                agent.scores.find(
+                  (entry) => entry.systemId === initialSystem.id && entry.dimensionId === dim.id
+                )?.score || 0;
+              return sum + score;
+            }, 0) / agents.length
+          );
+          const isActive = !dimsToUse.length || dimsToUse.includes(dim.id);
+          return (
+            <div
+              class={`rounded-2xl border px-4 py-4 ${
+                isActive ? 'border-ink-200 bg-white/80' : 'border-ink-100 bg-white/50 opacity-60'
+              }`}
+            >
+              <div class="text-sm font-semibold text-ink-800">{dim.name}</div>
+              <div class="mt-1 text-xs text-ink-500">{dim.description}</div>
+              <div class="mt-4 flex items-end justify-between">
+                <div class="text-xs uppercase tracking-wide text-ink-400">Avg score</div>
+                <div class="font-display text-2xl font-semibold text-ink-900">{avg}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       <div class="mt-10 border-t border-ink-100 pt-8">
         <div class="flex flex-wrap items-center justify-between gap-4">
@@ -61,7 +110,36 @@ const serializedCases = JSON.stringify(cases);
                 <th class="py-3">Details</th>
               </tr>
             </thead>
-            <tbody id="leaderboardBody" class="text-ink-700"></tbody>
+            <tbody id="leaderboardBody" class="text-ink-700">
+              {sortedAgents.map((agent, index) => (
+                <tr class="border-t border-ink-100">
+                  <td class="py-4 pr-4 font-semibold">{index + 1}</td>
+                  <td class="py-4 pr-4">
+                    <div class="font-semibold text-ink-900">{agent.name}</div>
+                    <div class="text-xs text-ink-500">{agent.type}</div>
+                  </td>
+                  <td class="py-4 pr-4">{agent.developer}</td>
+                  <td class="py-4 pr-4">
+                    <div class="font-display text-xl font-semibold text-ink-900">{agent.avgScore}</div>
+                    <div class="text-xs text-ink-500">avg of selected dims</div>
+                  </td>
+                  <td class="py-4 pr-4">{agent.releaseDate}</td>
+                  <td class="py-4 pr-4">
+                    <button
+                      class="rounded-full border border-ink-200 px-3 py-1 text-xs font-semibold"
+                      data-compare={agent.id}
+                    >
+                      + Compare
+                    </button>
+                  </td>
+                  <td class="py-4">
+                    <button class="text-ink-700 underline" data-agent-view={agent.id}>
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
         <div class="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-ink-600">
