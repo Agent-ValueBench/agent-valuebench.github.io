@@ -189,7 +189,13 @@ const serializedSystems = JSON.stringify(valueSystems);
       return { system, dims };
     };
 
+    const saveScroll = () => {
+      sessionStorage.setItem('avb-scroll', String(window.scrollY));
+      sessionStorage.setItem('avb-scroll-path', window.location.pathname);
+    };
+
     applyFilters.addEventListener('click', () => {
+      saveScroll();
       const { system, dims } = persistFilters();
       const params = new URLSearchParams(window.location.search);
       params.set('system', system);
@@ -202,6 +208,7 @@ const serializedSystems = JSON.stringify(valueSystems);
     });
 
     resetFilters.addEventListener('click', () => {
+      saveScroll();
       localStorage.removeItem('avb-filters');
       window.location.search = '';
     });
@@ -213,6 +220,15 @@ const serializedSystems = JSON.stringify(valueSystems);
         url.search = params.toString();
       }
       link.href = url.toString();
+      link.addEventListener('click', () => saveScroll());
+    });
+
+    window.addEventListener('load', () => {
+      const saved = sessionStorage.getItem('avb-scroll');
+      const savedPath = sessionStorage.getItem('avb-scroll-path');
+      if (saved && savedPath === window.location.pathname) {
+        window.scrollTo({ top: Number(saved), behavior: 'instant' });
+      }
     });
   </script>
 </BaseLayout>
