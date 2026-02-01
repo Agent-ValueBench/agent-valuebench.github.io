@@ -12,6 +12,20 @@ const currentPath = Astro.url.pathname;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Agent-ValueBench: a benchmark for value-oriented evaluation across pluralistic value systems." />
     <link rel="icon" type="image/png" href="/logo_without_words.png" />
+    <script is:inline>
+      if (location.pathname.startsWith('/benchmark')) {
+        history.scrollRestoration = 'manual';
+        const saved = sessionStorage.getItem('avb-scroll');
+        if (saved) {
+          document.documentElement.style.scrollBehavior = 'auto';
+          document.documentElement.style.visibility = 'hidden';
+          window.scrollTo(0, Number(saved));
+          window.addEventListener('load', () => {
+            document.documentElement.style.visibility = '';
+          });
+        }
+      }
+    </script>
     <title>{title ? `${title} · Agent-ValueBench` : 'Agent-ValueBench'}</title>
   </head>
   <body>

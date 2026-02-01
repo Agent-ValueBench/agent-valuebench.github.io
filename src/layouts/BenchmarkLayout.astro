@@ -191,7 +191,6 @@ const serializedSystems = JSON.stringify(valueSystems);
 
     const saveScroll = () => {
       sessionStorage.setItem('avb-scroll', String(window.scrollY));
-      sessionStorage.setItem('avb-scroll-path', window.location.pathname);
     };
 
     applyFilters.addEventListener('click', () => {
@@ -223,12 +222,9 @@ const serializedSystems = JSON.stringify(valueSystems);
       link.addEventListener('click', () => saveScroll());
     });
 
-    window.addEventListener('load', () => {
-      const saved = sessionStorage.getItem('avb-scroll');
-      const savedPath = sessionStorage.getItem('avb-scroll-path');
-      if (saved && savedPath === window.location.pathname) {
-        window.scrollTo({ top: Number(saved), behavior: 'instant' });
-      }
+    window.addEventListener('pagehide', saveScroll);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') saveScroll();
     });
   </script>
 </BaseLayout>
