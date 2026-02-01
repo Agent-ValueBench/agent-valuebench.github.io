@@ -121,8 +121,9 @@ const serializedSystems = JSON.stringify(valueSystems);
     <slot />
   </section>
 
+  <script type="application/json" id="valueSystemsData">{serializedSystems}</script>
   <script>
-    const valueSystems = JSON.parse(`{"systems":${serializedSystems}}`).systems;
+    const valueSystems = JSON.parse(document.getElementById('valueSystemsData').textContent);
     const systemSelect = document.getElementById('systemSelect');
     const dimensionList = document.getElementById('dimensionList');
     const systemLabel = document.getElementById('systemLabel');
