@@ -1,0 +1,238 @@
+---
+import BenchmarkLayout from '../../layouts/BenchmarkLayout.astro';
+import { agents, valueSystems } from '../../data/benchmark';
+const serializedAgents = JSON.stringify(agents);
+const serializedSystems = JSON.stringify(valueSystems);
+---
+<BenchmarkLayout activeTab="benchmarks">
+  <div class="space-y-10">
+    <section class="card p-6">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="text-xs uppercase tracking-wide text-ink-500">Value System Focus</div>
+          <div class="mt-2 font-display text-2xl font-semibold text-ink-900">Explore dimensions within each system</div>
+        </div>
+        <div class="text-sm text-ink-500">Quick switch systems (mirrors global filter).</div>
+      </div>
+      <div class="mt-6 flex flex-wrap gap-2" id="systemTags">
+        {valueSystems.map((system) => (
+          <button
+            type="button"
+            data-system-tag={system.id}
+            class="rounded-full border border-ink-200 bg-white/70 px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-ink-400"
+          >
+            {system.name}
+          </button>
+        ))}
+      </div>
+      <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3" id="dimensionScoreGrid"></div>
+    </section>
+
+    <section class="card p-6">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div class="text-xs uppercase tracking-wide text-ink-500">Leaderboard</div>
+          <div class="mt-2 font-display text-2xl font-semibold text-ink-900">Agent ranking for selected dimensions</div>
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <input
+            id="agentSearch"
+            type="text"
+            placeholder="Search agent..."
+            class="rounded-full border border-ink-200 bg-white/80 px-4 py-2 text-sm"
+          />
+          <select id="sortSelect" class="rounded-full border border-ink-200 bg-white/80 px-3 py-2 text-sm">
+            <option value="score-desc">Score (high → low)</option>
+            <option value="score-asc">Score (low → high)</option>
+            <option value="name-asc">Name (A → Z)</option>
+          </select>
+        </div>
+      </div>
+      <div class="mt-6 overflow-auto">
+        <table class="w-full min-w-[900px] text-left text-sm">
+          <thead class="text-xs uppercase text-ink-500">
+            <tr>
+              <th class="py-3 pr-4">Rank</th>
+              <th class="py-3 pr-4">Agent Name</th>
+              <th class="py-3 pr-4">Developer</th>
+              <th class="py-3 pr-4">Score</th>
+              <th class="py-3 pr-4">Release Date</th>
+              <th class="py-3 pr-4">Compare</th>
+              <th class="py-3">Details</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody" class="text-ink-700"></tbody>
+        </table>
+      </div>
+      <div class="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-ink-600">
+        <div id="pageInfo"></div>
+        <div class="flex gap-2">
+          <button class="btn-ghost" type="button" id="prevPage">Prev</button>
+          <button class="btn-ghost" type="button" id="nextPage">Next</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const agents = JSON.parse(`{"agents":${serializedAgents}}`).agents;
+    const systems = JSON.parse(`{"systems":${serializedSystems}}`).systems;
+    const systemTags = document.getElementById('systemTags');
+    const dimensionScoreGrid = document.getElementById('dimensionScoreGrid');
+    const leaderboardBody = document.getElementById('leaderboardBody');
+    const agentSearch = document.getElementById('agentSearch');
+    const sortSelect = document.getElementById('sortSelect');
+    const pageInfo = document.getElementById('pageInfo');
+    const prevPage = document.getElementById('prevPage');
+    const nextPage = document.getElementById('nextPage');
+
+    let page = 1;
+    const pageSize = 5;
+
+    const getFilters = () => {
+      const params = new URLSearchParams(window.location.search);
+      const stored = JSON.parse(localStorage.getItem('avb-filters') || 'null');
+      const system = params.get('system') || stored?.system || systems[0].id;
+      const dims = params.get('dims')?.split(',') || stored?.dims || [];
+      return { system, dims };
+    };
+
+    const getSystem = (systemId) => systems.find((s) => s.id === systemId) || systems[0];
+
+    const averageScore = (agent, systemId, dims) => {
+      const systemDims = getSystem(systemId).dimensions.map((d) => d.id);
+      const dimsToUse = dims.length ? dims : systemDims;
+      const scores = agent.scores.filter((score) => score.systemId === systemId && dimsToUse.includes(score.dimensionId));
+      if (!scores.length) return 0;
+      const total = scores.reduce((sum, s) => sum + s.score, 0);
+      return Math.round(total / scores.length);
+    };
+
+    const renderDimensionGrid = () => {
+      const { system, dims } = getFilters();
+      const systemData = getSystem(system);
+      dimensionScoreGrid.innerHTML = '';
+      systemData.dimensions.forEach((dim) => {
+        const avg = Math.round(
+          agents.reduce((sum, agent) => {
+            const score = agent.scores.find((s) => s.systemId === system && s.dimensionId === dim.id)?.score || 0;
+            return sum + score;
+          }, 0) / agents.length
+        );
+        const isActive = !dims.length || dims.includes(dim.id);
+        const card = document.createElement('div');
+        card.className = `rounded-2xl border px-4 py-4 ${isActive ? 'border-ink-200 bg-white/80' : 'border-ink-100 bg-white/50 opacity-60'}`;
+        card.innerHTML = `
+          <div class="text-sm font-semibold text-ink-800">${dim.name}</div>
+          <div class="mt-1 text-xs text-ink-500">${dim.description}</div>
+          <div class="mt-4 flex items-end justify-between">
+            <div class="text-xs uppercase tracking-wide text-ink-400">Avg score</div>
+            <div class="font-display text-2xl font-semibold text-ink-900">${avg}</div>
+          </div>
+        `;
+        dimensionScoreGrid.appendChild(card);
+      });
+    };
+
+    const renderTable = () => {
+      const { system, dims } = getFilters();
+      const search = agentSearch.value.toLowerCase();
+      const rows = agents
+        .filter((agent) => agent.name.toLowerCase().includes(search))
+        .map((agent) => ({
+          ...agent,
+          score: averageScore(agent, system, dims),
+        }));
+
+      const sorted = rows.sort((a, b) => {
+        if (sortSelect.value === 'score-asc') return a.score - b.score;
+        if (sortSelect.value === 'name-asc') return a.name.localeCompare(b.name);
+        return b.score - a.score;
+      });
+
+      const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+      page = Math.min(page, totalPages);
+      const start = (page - 1) * pageSize;
+      const paged = sorted.slice(start, start + pageSize);
+      leaderboardBody.innerHTML = '';
+
+      paged.forEach((agent, index) => {
+        const row = document.createElement('tr');
+        row.className = 'border-t border-ink-100';
+        row.innerHTML = `
+          <td class="py-4 pr-4 font-semibold">${start + index + 1}</td>
+          <td class="py-4 pr-4">
+            <div class="font-semibold text-ink-900">${agent.name}</div>
+            <div class="text-xs text-ink-500">${agent.type}</div>
+          </td>
+          <td class="py-4 pr-4">${agent.developer}</td>
+          <td class="py-4 pr-4">
+            <div class="font-display text-xl font-semibold text-ink-900">${agent.score}</div>
+            <div class="text-xs text-ink-500">avg of selected dims</div>
+          </td>
+          <td class="py-4 pr-4">${agent.releaseDate}</td>
+          <td class="py-4 pr-4">
+            <button class="rounded-full border border-ink-200 px-3 py-1 text-xs font-semibold" data-compare="${agent.id}">+ Compare</button>
+          </td>
+          <td class="py-4">
+            <a class="text-ink-700 underline" href="/benchmark/analysis?agent=${agent.id}">View</a>
+          </td>
+        `;
+        leaderboardBody.appendChild(row);
+      });
+
+      pageInfo.textContent = `Page ${page} of ${totalPages}`;
+    };
+
+    const updateTabHighlight = () => {
+      const { system } = getFilters();
+      systemTags.querySelectorAll('button').forEach((btn) => {
+        if (btn.dataset.systemTag === system) {
+          btn.classList.add('bg-ink-900', 'text-ink-50');
+          btn.classList.remove('bg-white/70', 'text-ink-700');
+        } else {
+          btn.classList.remove('bg-ink-900', 'text-ink-50');
+          btn.classList.add('bg-white/70', 'text-ink-700');
+        }
+      });
+    };
+
+    systemTags.addEventListener('click', (event) => {
+      const btn = event.target.closest('button[data-system-tag]');
+      if (!btn) return;
+      const params = new URLSearchParams(window.location.search);
+      params.set('system', btn.dataset.systemTag);
+      window.location.search = params.toString();
+    });
+
+    document.addEventListener('click', (event) => {
+      const compare = event.target.closest('[data-compare]');
+      if (!compare) return;
+      const id = compare.dataset.compare;
+      const stored = JSON.parse(localStorage.getItem('avb-compare') || '[]');
+      if (!stored.includes(id)) {
+        stored.push(id);
+        localStorage.setItem('avb-compare', JSON.stringify(stored));
+      }
+      compare.textContent = 'Added';
+    });
+
+    agentSearch.addEventListener('input', () => {
+      page = 1;
+      renderTable();
+    });
+    sortSelect.addEventListener('change', renderTable);
+    prevPage.addEventListener('click', () => {
+      page = Math.max(1, page - 1);
+      renderTable();
+    });
+    nextPage.addEventListener('click', () => {
+      page += 1;
+      renderTable();
+    });
+
+    updateTabHighlight();
+    renderDimensionGrid();
+    renderTable();
+  </script>
+</BenchmarkLayout>

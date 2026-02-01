@@ -1,0 +1,210 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import { valueSystems } from '../data/benchmark';
+const { activeTab } = Astro.props;
+const tabs = [
+  { id: 'benchmarks', label: 'Benchmarks', href: '/benchmark' },
+  { id: 'analysis', label: 'Analysis', href: '/benchmark/analysis' },
+  { id: 'comparison', label: 'Comparison', href: '/benchmark/comparison' },
+];
+const defaultSystem = valueSystems[0];
+const serializedSystems = JSON.stringify(valueSystems);
+---
+<BaseLayout title="Benchmark">
+  <section class="section-wrap py-12">
+    <div class="grid gap-8 lg:grid-cols-[1.2fr,0.8fr]">
+      <div class="space-y-4">
+        <div class="tag">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" class="text-amber-700">
+            <path d="M12 2L19 5v6c0 5-3.2 9-7 11-3.8-2-7-6-7-11V5l7-3Z" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+          Benchmark Overview
+        </div>
+        <h1 class="font-display text-3xl font-semibold text-ink-900 sm:text-4xl">
+          Score how agents express values, not just how they answer tasks.
+        </h1>
+        <p class="subtle text-base">
+          Agent-ValueBench (AVB) organizes evaluation across multiple value systems and fine-grained dimensions.
+          Each score links back to case-level evidence, making comparisons inspectable and reproducible.
+        </p>
+        <p class="subtle text-base">
+          Use the tabs below to explore the leaderboard, drill into a single agent, or compare agents side by side.
+          All numbers and descriptions are placeholders and designed for easy updates once the full benchmark is ready.
+        </p>
+      </div>
+      <div class="card p-6">
+        <div class="flex items-center gap-3 text-sm font-semibold text-ink-800">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-slateblue-700">
+            <path d="M4 18V9m6 9V5m6 13v-7m4 7V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          This release focuses on flexibility
+        </div>
+        <ul class="mt-4 space-y-3 text-sm text-ink-600">
+          <li>• Plug-and-play value systems and dimensions.</li>
+          <li>• Global filters shared across all tabs.</li>
+          <li>• Score tables ready for real evaluation data.</li>
+          <li>• UI prepared for future case evidence.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-wrap">
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-ink-100 pb-3">
+      <div class="flex gap-2">
+        {tabs.map((tab) => (
+          <a
+            href={tab.href}
+            data-tab-link
+            class={
+              'rounded-full px-4 py-2 text-sm font-semibold transition ' +
+              (activeTab === tab.id
+                ? 'bg-ink-900 text-ink-50'
+                : 'bg-white/70 text-ink-700 hover:bg-white')
+            }
+          >
+            {tab.label}
+          </a>
+        ))}
+      </div>
+      <div class="text-xs text-ink-500">Filters stay consistent across tabs.</div>
+    </div>
+  </section>
+
+  <section class="section-wrap py-8">
+    <div class="card p-6">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3 text-sm font-semibold text-ink-800">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-moss-700">
+            <path d="M4 7h16M7 12h10M10 17h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          Global Filter
+        </div>
+        <div class="flex flex-wrap gap-3">
+          <button class="btn-ghost" type="button" id="resetFilters">Reset</button>
+          <button class="btn-primary" type="button" id="applyFilters">Apply</button>
+        </div>
+      </div>
+      <div class="mt-6 grid gap-6 lg:grid-cols-[220px,1fr]">
+        <div>
+          <label class="text-xs uppercase tracking-wide text-ink-500">Value System</label>
+          <select id="systemSelect" class="mt-2 w-full rounded-xl border border-ink-200 bg-white/80 px-3 py-2 text-sm">
+            {valueSystems.map((system) => (
+              <option value={system.id}>{system.name}</option>
+            ))}
+          </select>
+          <p class="mt-3 text-xs text-ink-500">Currently selected: <span id="systemLabel">{defaultSystem.name}</span></p>
+        </div>
+        <div>
+          <div class="flex items-center justify-between">
+            <label class="text-xs uppercase tracking-wide text-ink-500">Dimensions</label>
+            <div class="flex gap-2 text-xs">
+              <button type="button" class="text-ink-600 hover:text-ink-900" id="selectAllDims">Select All</button>
+              <span class="text-ink-300">|</span>
+              <button type="button" class="text-ink-600 hover:text-ink-900" id="clearDims">Clear</button>
+            </div>
+          </div>
+          <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" id="dimensionList"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section-wrap pb-16">
+    <slot />
+  </section>
+
+  <script>
+    const valueSystems = JSON.parse(`{"systems":${serializedSystems}}`).systems;
+    const systemSelect = document.getElementById('systemSelect');
+    const dimensionList = document.getElementById('dimensionList');
+    const systemLabel = document.getElementById('systemLabel');
+    const selectAllDims = document.getElementById('selectAllDims');
+    const clearDims = document.getElementById('clearDims');
+    const applyFilters = document.getElementById('applyFilters');
+    const resetFilters = document.getElementById('resetFilters');
+    const tabLinks = document.querySelectorAll('[data-tab-link]');
+
+    const paramSystem = new URLSearchParams(window.location.search).get('system');
+    const paramDims = new URLSearchParams(window.location.search).get('dims');
+    const stored = JSON.parse(localStorage.getItem('avb-filters') || 'null');
+
+    const initialSystem = paramSystem || stored?.system || valueSystems[0].id;
+    const initialDims = (paramDims ? paramDims.split(',') : stored?.dims) || [];
+
+    const renderDimensions = (systemId, selectedIds = null) => {
+      const system = valueSystems.find((s) => s.id === systemId) || valueSystems[0];
+      systemLabel.textContent = system.name;
+      dimensionList.innerHTML = '';
+      system.dimensions.forEach((dim) => {
+        const checkedIds = selectedIds ?? initialDims;
+        const checked = checkedIds.length ? checkedIds.includes(dim.id) : true;
+        const wrapper = document.createElement('label');
+        wrapper.className = 'flex items-center gap-2 rounded-xl border border-ink-100 bg-white/70 px-3 py-2 text-sm';
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.value = dim.id;
+        input.checked = checked;
+        input.className = 'accent-ink-900';
+        const span = document.createElement('span');
+        span.textContent = dim.name;
+        wrapper.appendChild(input);
+        wrapper.appendChild(span);
+        dimensionList.appendChild(wrapper);
+      });
+    };
+
+    systemSelect.value = initialSystem;
+    renderDimensions(initialSystem, initialDims);
+
+    systemSelect.addEventListener('change', (event) => {
+      renderDimensions(event.target.value, []);
+    });
+
+    selectAllDims.addEventListener('click', () => {
+      dimensionList.querySelectorAll('input[type="checkbox"]').forEach((input) => (input.checked = true));
+    });
+
+    clearDims.addEventListener('click', () => {
+      dimensionList.querySelectorAll('input[type="checkbox"]').forEach((input) => (input.checked = false));
+    });
+
+    const getSelectedDims = () =>
+      Array.from(dimensionList.querySelectorAll('input[type="checkbox"]'))
+        .filter((input) => input.checked)
+        .map((input) => input.value);
+
+    const persistFilters = () => {
+      const system = systemSelect.value;
+      const dims = getSelectedDims();
+      localStorage.setItem('avb-filters', JSON.stringify({ system, dims }));
+      return { system, dims };
+    };
+
+    applyFilters.addEventListener('click', () => {
+      const { system, dims } = persistFilters();
+      const params = new URLSearchParams(window.location.search);
+      params.set('system', system);
+      if (dims.length) {
+        params.set('dims', dims.join(','));
+      } else {
+        params.delete('dims');
+      }
+      window.location.search = params.toString();
+    });
+
+    resetFilters.addEventListener('click', () => {
+      localStorage.removeItem('avb-filters');
+      window.location.search = '';
+    });
+
+    tabLinks.forEach((link) => {
+      const url = new URL(link.href);
+      const params = new URLSearchParams(window.location.search);
+      if (params.toString()) {
+        url.search = params.toString();
+      }
+      link.href = url.toString();
+    });
+  </script>
+</BaseLayout>

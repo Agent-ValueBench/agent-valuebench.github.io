@@ -1,0 +1,30 @@
+---
+const nav = [
+  { label: 'Home', href: '/' },
+  { label: 'Benchmark', href: '/benchmark' },
+];
+const { currentPath } = Astro.props;
+---
+<header class="sticky top-0 z-50 border-b border-ink-100 bg-ink-50/80 backdrop-blur">
+  <div class="section-wrap flex items-center justify-between py-4">
+    <a href="/" class="flex items-center gap-3">
+      <img src="/Agent-ValueBench_logo.png" alt="Agent-ValueBench logo" class="h-10 w-10 rounded-full border border-ink-200 bg-white object-contain" />
+      <div class="font-display text-lg font-semibold tracking-tight">Agent-ValueBench</div>
+    </a>
+    <nav class="flex items-center gap-6 text-sm font-medium">
+      {nav.map((item) => (
+        <a
+          href={item.href}
+          class={
+            'transition hover:text-ink-900 ' +
+            (currentPath === item.href || (currentPath.startsWith('/benchmark') && item.href === '/benchmark')
+              ? 'text-ink-900'
+              : 'text-ink-600')
+          }
+        >
+          {item.label}
+        </a>
+      ))}
+    </nav>
+  </div>
+</header>
