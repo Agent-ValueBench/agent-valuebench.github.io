@@ -49,29 +49,6 @@ const serializedSystems = JSON.stringify(valueSystems);
     </div>
   </section>
 
-  <section class="section-wrap">
-    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-ink-100 pb-3">
-      <div class="flex gap-2">
-        {tabs.map((tab) => (
-          <button
-            type="button"
-            data-tab-link
-            data-tab-id={tab.id}
-            class={
-              'rounded-full px-4 py-2 text-sm font-semibold transition ' +
-              (activeTab === tab.id
-                ? 'bg-ink-900 text-ink-50'
-                : 'bg-white/70 text-ink-700 hover:bg-white')
-            }
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-      <div class="text-xs text-ink-500">Filters stay consistent across tabs.</div>
-    </div>
-  </section>
-
   <section class="section-wrap py-8">
     <div class="card p-6">
       <div class="flex flex-wrap items-center justify-between gap-4">
@@ -115,6 +92,29 @@ const serializedSystems = JSON.stringify(valueSystems);
           </div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section class="section-wrap">
+    <div class="flex flex-wrap items-center justify-between gap-4 border-b border-ink-100 pb-3">
+      <div class="flex gap-2">
+        {tabs.map((tab) => (
+          <button
+            type="button"
+            data-tab-link
+            data-tab-id={tab.id}
+            class={
+              'rounded-full px-4 py-2 text-sm font-semibold transition ' +
+              (activeTab === tab.id
+                ? 'bg-ink-900 text-ink-50'
+                : 'bg-white/70 text-ink-700 hover:bg-white')
+            }
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <div class="text-xs text-ink-500">Filters stay consistent across tabs.</div>
     </div>
   </section>
 
