@@ -104,7 +104,14 @@ const serializedSystems = JSON.stringify(valueSystems);
               <button type="button" class="text-ink-600 hover:text-ink-900" id="clearDims">Clear</button>
             </div>
           </div>
-          <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" id="dimensionList"></div>
+          <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" id="dimensionList">
+            {defaultSystem.dimensions.map((dim) => (
+              <label class="flex items-center gap-2 rounded-xl border border-ink-100 bg-white/70 px-3 py-2 text-sm">
+                <input type="checkbox" value={dim.id} class="accent-ink-900" checked />
+                <span>{dim.name}</span>
+              </label>
+            ))}
+          </div>
         </div>
       </div>
     </div>
