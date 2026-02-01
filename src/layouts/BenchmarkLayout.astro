@@ -50,45 +50,56 @@ const serializedSystems = JSON.stringify(valueSystems);
   </section>
 
   <section class="section-wrap py-8">
-    <div class="card p-6">
-      <div class="flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-3 text-sm font-semibold text-ink-800">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-moss-700">
-            <path d="M4 7h16M7 12h10M10 17h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-          </svg>
-          Global Filter
-        </div>
-        <div class="flex flex-wrap gap-3">
-          <button class="btn-ghost" type="button" id="resetFilters">Reset</button>
-          <button class="btn-primary" type="button" id="applyFilters">Apply</button>
-        </div>
-      </div>
-      <div class="mt-6 grid gap-6 lg:grid-cols-[220px,1fr]">
-        <div>
-          <label class="text-xs uppercase tracking-wide text-ink-500">Value System</label>
-          <select id="systemSelect" class="mt-2 w-full rounded-xl border border-ink-200 bg-white/80 px-3 py-2 text-sm">
-            {valueSystems.map((system) => (
-              <option value={system.id}>{system.name}</option>
-            ))}
-          </select>
-          <p class="mt-3 text-xs text-ink-500">Currently selected: <span id="systemLabel">{defaultSystem.name}</span></p>
-        </div>
-        <div>
-          <div class="flex items-center justify-between">
-            <label class="text-xs uppercase tracking-wide text-ink-500">Dimensions</label>
-            <div class="flex gap-2 text-xs">
-              <button type="button" class="text-ink-600 hover:text-ink-900" id="selectAllDims">Select All</button>
-              <span class="text-ink-300">|</span>
-              <button type="button" class="text-ink-600 hover:text-ink-900" id="clearDims">Clear</button>
-            </div>
+    <div class="card p-0 overflow-hidden">
+      <div class="grid gap-6 lg:grid-cols-[260px,1fr]">
+        <div class="bg-ink-900 text-ink-50 p-6">
+          <div class="flex items-center gap-3 text-sm font-semibold">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" class="text-amber-300">
+              <path d="M4 7h16M7 12h10M10 17h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+            </svg>
+            Global Filter
           </div>
-          <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" id="dimensionList">
-            {defaultSystem.dimensions.map((dim) => (
-              <label class="flex items-center gap-2 rounded-xl border border-ink-100 bg-white/70 px-3 py-2 text-sm">
-                <input type="checkbox" value={dim.id} class="accent-ink-900" checked />
-                <span>{dim.name}</span>
-              </label>
-            ))}
+          <p class="mt-3 text-sm text-ink-100/80">
+            Choose a value system and the dimensions you want to score across every tab.
+          </p>
+          <div class="mt-6 flex flex-col gap-2">
+            <button class="btn-ghost !border-ink-50/30 !text-ink-50 hover:!border-ink-50" type="button" id="resetFilters">
+              Reset
+            </button>
+            <button class="btn-primary !bg-amber-300 !text-ink-900" type="button" id="applyFilters">
+              Apply
+            </button>
+          </div>
+        </div>
+        <div class="p-6">
+          <div class="grid gap-6 lg:grid-cols-[220px,1fr]">
+            <div>
+              <label class="text-xs uppercase tracking-wide text-ink-500">Value System</label>
+              <select id="systemSelect" class="mt-2 w-full rounded-xl border border-ink-200 bg-white/80 px-3 py-2 text-sm">
+                {valueSystems.map((system) => (
+                  <option value={system.id}>{system.name}</option>
+                ))}
+              </select>
+              <p class="mt-3 text-xs text-ink-500">Currently selected: <span id="systemLabel">{defaultSystem.name}</span></p>
+            </div>
+            <div>
+              <div class="flex items-center justify-between">
+                <label class="text-xs uppercase tracking-wide text-ink-500">Dimensions</label>
+                <div class="flex gap-2 text-xs">
+                  <button type="button" class="text-ink-600 hover:text-ink-900" id="selectAllDims">Select All</button>
+                  <span class="text-ink-300">|</span>
+                  <button type="button" class="text-ink-600 hover:text-ink-900" id="clearDims">Clear</button>
+                </div>
+              </div>
+              <div class="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" id="dimensionList">
+                {defaultSystem.dimensions.map((dim) => (
+                  <label class="flex items-center gap-2 rounded-xl border border-ink-100 bg-white/70 px-3 py-2 text-sm">
+                    <input type="checkbox" value={dim.id} class="accent-ink-900" checked />
+                    <span>{dim.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
