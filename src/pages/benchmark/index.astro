@@ -14,18 +14,6 @@ const initialSystem =
 const initialDims = dimsParam ? dimsParam.split(',') : initialSystem.dimensions.map((dim) => dim.id);
 const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.map((dim) => dim.id);
 
-const averageScore = (agent) => {
-  const scores = agent.scores.filter(
-    (score) => score.systemId === initialSystem.id && dimsToUse.includes(score.dimensionId)
-  );
-  if (!scores.length) return 0;
-  const total = scores.reduce((sum, s) => sum + s.score, 0);
-  return Math.round(total / scores.length);
-};
-
-const sortedAgents = [...agents]
-  .map((agent) => ({ ...agent, avgScore: averageScore(agent) }))
-  .sort((a, b) => b.avgScore - a.avgScore);
 ---
 <BenchmarkLayout activeTab="benchmarks">
   <div class="space-y-10">
@@ -95,55 +83,14 @@ const sortedAgents = [...agents]
               class="rounded-full border border-ink-200 bg-white/80 px-4 py-2 text-sm"
             />
             <select id="sortSelect" class="rounded-full border border-ink-200 bg-white/80 px-3 py-2 text-sm">
-              <option value="score-desc">Score (high → low)</option>
-              <option value="score-asc">Score (low → high)</option>
               <option value="name-asc">Name (A → Z)</option>
             </select>
           </div>
         </div>
         <div class="mt-6 overflow-auto">
           <table class="w-full min-w-[900px] text-left text-sm">
-            <thead class="text-xs uppercase text-ink-500">
-              <tr>
-                <th class="py-3 pr-4">Rank</th>
-                <th class="py-3 pr-4">Agent Name</th>
-                <th class="py-3 pr-4">Developer</th>
-                <th class="py-3 pr-4">Score</th>
-                <th class="py-3 pr-4">Release Date</th>
-                <th class="py-3 pr-4">Compare</th>
-                <th class="py-3">Details</th>
-              </tr>
-            </thead>
-            <tbody id="leaderboardBody" class="text-ink-700">
-              {sortedAgents.map((agent, index) => (
-                <tr class="border-t border-ink-100">
-                  <td class="py-4 pr-4 font-semibold">{index + 1}</td>
-                  <td class="py-4 pr-4">
-                    <div class="font-semibold text-ink-900">{agent.name}</div>
-                    <div class="text-xs text-ink-500">{agent.type}</div>
-                  </td>
-                  <td class="py-4 pr-4">{agent.developer}</td>
-                  <td class="py-4 pr-4">
-                    <div class="font-display text-xl font-semibold text-ink-900">{agent.avgScore}</div>
-                    <div class="text-xs text-ink-500">avg of selected dims</div>
-                  </td>
-                  <td class="py-4 pr-4">{agent.releaseDate}</td>
-                  <td class="py-4 pr-4">
-                    <button
-                      class="rounded-full border border-ink-200 px-3 py-1 text-xs font-semibold"
-                      data-compare={agent.id}
-                    >
-                      + Compare
-                    </button>
-                  </td>
-                  <td class="py-4">
-                    <button class="text-ink-700 underline" data-agent-view={agent.id}>
-                      View
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
+            <thead id="leaderboardHead" class="text-xs uppercase text-ink-500"></thead>
+            <tbody id="leaderboardBody" class="text-ink-700"></tbody>
           </table>
         </div>
         <div class="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-ink-600">
@@ -277,6 +224,7 @@ const sortedAgents = [...agents]
       const systems = JSON.parse(document.getElementById('systemsData').textContent);
       const systemTags = document.getElementById('systemTags');
       const dimensionScoreGrid = document.getElementById('dimensionScoreGrid');
+      const leaderboardHead = document.getElementById('leaderboardHead');
       const leaderboardBody = document.getElementById('leaderboardBody');
       const agentSearch = document.getElementById('agentSearch');
       const sortSelect = document.getElementById('sortSelect');
@@ -315,13 +263,12 @@ const sortedAgents = [...agents]
         return { system: systemSelect.value, dims };
       };
 
-      const averageScore = (agent, systemId, dims) => {
-        if (!dims.length) return 0;
-        const dimsToUse = dims;
-        const scores = agent.scores.filter((score) => score.systemId === systemId && dimsToUse.includes(score.dimensionId));
-        if (!scores.length) return 0;
-        const total = scores.reduce((sum, s) => sum + s.score, 0);
-        return Math.round(total / scores.length);
+      const scoreFor = (agent, systemId, dimId) =>
+        agent.scores.find((score) => score.systemId === systemId && score.dimensionId === dimId)?.score ?? 0;
+
+      const getSelectedDimensions = (systemId, dims) => {
+        const system = getSystem(systemId);
+        return system.dimensions.filter((dim) => dims.includes(dim.id));
       };
 
       const renderDimensionGrid = (override = null) => {
@@ -352,20 +299,48 @@ const sortedAgents = [...agents]
         });
       };
 
+      const renderLeaderboardHead = (selectedDimensions) => {
+        const dimensionHeaders = selectedDimensions
+          .map((dim) => `<th class="py-3 pr-4">${dim.name}</th>`)
+          .join('');
+        leaderboardHead.innerHTML = `
+          <tr>
+            <th class="py-3 pr-4">Rank</th>
+            <th class="py-3 pr-4">Agent Name</th>
+            <th class="py-3 pr-4">Developer</th>
+            ${dimensionHeaders}
+            <th class="py-3 pr-4">Release Date</th>
+            <th class="py-3 pr-4">Compare</th>
+            <th class="py-3">Details</th>
+          </tr>
+        `;
+      };
+
       const renderTable = (override = null) => {
         const { system, dims } = override || getFilters();
+        const selectedDimensions = getSelectedDimensions(system, dims);
+        renderLeaderboardHead(selectedDimensions);
         const search = agentSearch.value.toLowerCase();
         const rows = agents
           .filter((agent) => agent.name.toLowerCase().includes(search))
           .map((agent) => ({
             ...agent,
-            score: averageScore(agent, system, dims),
+            dimensionScores: selectedDimensions.reduce((acc, dim) => {
+              acc[dim.id] = scoreFor(agent, system, dim.id);
+              return acc;
+            }, {}),
           }));
 
+        const sortValue = sortSelect.value || 'name-asc';
+        const dimSortMatch = sortValue.startsWith('dim:') ? sortValue.slice(4) : null;
         const sorted = rows.sort((a, b) => {
-          if (sortSelect.value === 'score-asc') return a.score - b.score;
-          if (sortSelect.value === 'name-asc') return a.name.localeCompare(b.name);
-          return b.score - a.score;
+          if (dimSortMatch) {
+            const scoreA = a.dimensionScores[dimSortMatch] ?? 0;
+            const scoreB = b.dimensionScores[dimSortMatch] ?? 0;
+            if (scoreB !== scoreA) return scoreB - scoreA;
+            return a.name.localeCompare(b.name);
+          }
+          return a.name.localeCompare(b.name);
         });
 
         const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
@@ -374,20 +349,48 @@ const sortedAgents = [...agents]
         const paged = sorted.slice(start, start + pageSize);
         leaderboardBody.innerHTML = '';
 
+        const buildRankLabel = (rank, showBadge) => {
+          if (!showBadge) return `${rank}`;
+          const badgeMap = {
+            1: '🥇',
+            2: '🥈',
+            3: '🥉',
+          };
+          const badge = badgeMap[rank];
+          if (!badge) return `${rank}`;
+          return `<span class="inline-flex items-center gap-2">${badge}<span>${rank}</span></span>`;
+        };
+
+        const showRankBadges = Boolean(dimSortMatch);
+
+        if (dimSortMatch) {
+          sorted.forEach((agent, index) => {
+            if (index === 0) {
+              agent._rank = 1;
+              return;
+            }
+            const prev = sorted[index - 1];
+            const prevScore = prev.dimensionScores[dimSortMatch] ?? 0;
+            const currentScore = agent.dimensionScores[dimSortMatch] ?? 0;
+            agent._rank = currentScore === prevScore ? prev._rank : index + 1;
+          });
+        }
+
         paged.forEach((agent, index) => {
+          const rank = dimSortMatch ? agent._rank : start + index + 1;
           const row = document.createElement('tr');
           row.className = 'border-t border-ink-100';
+          const scoreCells = selectedDimensions
+            .map((dim) => `<td class="py-4 pr-4 font-semibold text-ink-900">${agent.dimensionScores[dim.id] ?? 0}</td>`)
+            .join('');
           row.innerHTML = `
-            <td class="py-4 pr-4 font-semibold">${start + index + 1}</td>
+            <td class="py-4 pr-4 font-semibold">${buildRankLabel(rank, showRankBadges)}</td>
             <td class="py-4 pr-4">
               <div class="font-semibold text-ink-900">${agent.name}</div>
               <div class="text-xs text-ink-500">${agent.type}</div>
             </td>
             <td class="py-4 pr-4">${agent.developer}</td>
-            <td class="py-4 pr-4">
-              <div class="font-display text-xl font-semibold text-ink-900">${agent.score}</div>
-              <div class="text-xs text-ink-500">avg of selected dims</div>
-            </td>
+            ${scoreCells}
             <td class="py-4 pr-4">${agent.releaseDate}</td>
             <td class="py-4 pr-4">
               <button class="rounded-full border border-ink-200 px-3 py-1 text-xs font-semibold" data-compare="${agent.id}">+ Compare</button>
@@ -400,6 +403,25 @@ const sortedAgents = [...agents]
         });
 
         pageInfo.textContent = `Page ${page} of ${totalPages}`;
+      };
+
+      const updateSortOptions = (override = null) => {
+        const { system, dims } = override || getFilters();
+        const selectedDimensions = getSelectedDimensions(system, dims);
+        const currentValue = sortSelect.value || 'name-asc';
+        sortSelect.innerHTML = '';
+        const nameOption = document.createElement('option');
+        nameOption.value = 'name-asc';
+        nameOption.textContent = 'Name (A → Z)';
+        sortSelect.appendChild(nameOption);
+        selectedDimensions.forEach((dim) => {
+          const option = document.createElement('option');
+          option.value = `dim:${dim.id}`;
+          option.textContent = `${dim.name} (high → low)`;
+          sortSelect.appendChild(option);
+        });
+        const values = Array.from(sortSelect.options).map((option) => option.value);
+        sortSelect.value = values.includes(currentValue) ? currentValue : 'name-asc';
       };
 
       const updateTabHighlight = (overrideSystem = null) => {
@@ -418,6 +440,7 @@ const sortedAgents = [...agents]
       const applyUiFilters = () => {
         const detail = getFiltersFromUI();
         updateTabHighlight(detail.system);
+        updateSortOptions(detail);
         renderDimensionGrid(detail);
         renderTable(detail);
       };
@@ -467,6 +490,7 @@ const sortedAgents = [...agents]
       window.addEventListener('avb:filters', (event) => {
         const detail = event.detail || null;
         updateTabHighlight();
+        updateSortOptions(detail);
         renderDimensionGrid(detail);
         renderTable(detail);
       });
@@ -481,6 +505,7 @@ const sortedAgents = [...agents]
       }
 
       updateTabHighlight();
+      updateSortOptions();
       renderDimensionGrid();
       renderTable();
     })();
