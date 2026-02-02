@@ -232,11 +232,14 @@ const serializedSystems = JSON.stringify(valueSystems);
       renderDimensions(systemId, []);
     };
 
+    const getFiltersSnapshot = () => ({ system: systemSelect.value, dims: getSelectedDims() });
+
     window.avbSetTab = setTab;
     window.avbUpdateParams = updateUrlParams;
     window.avbEmitFilters = emitFilters;
     window.avbPersistFilters = persistFilters;
     window.avbSetSystem = setSystem;
+    window.avbGetFilters = getFiltersSnapshot;
 
     applyFilters.addEventListener('click', () => {
       const { system, dims } = persistFilters();

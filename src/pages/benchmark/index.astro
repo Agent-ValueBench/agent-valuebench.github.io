@@ -285,6 +285,9 @@ const sortedAgents = [...agents]
       const pageSize = 5;
 
       const getFilters = () => {
+        if (window.avbGetFilters) {
+          return window.avbGetFilters();
+        }
         const params = new URLSearchParams(window.location.search);
         const stored = JSON.parse(localStorage.getItem('avb-filters') || 'null');
         const system = params.get('system') || stored?.system || systems[0].id;
@@ -455,6 +458,20 @@ const sortedAgents = [...agents]
       updateTabHighlight();
       renderDimensionGrid();
       renderTable();
+
+      const systemSelect = document.getElementById('systemSelect');
+      const dimensionList = document.getElementById('dimensionList');
+      if (systemSelect && dimensionList) {
+        systemSelect.addEventListener('change', () => {
+          updateTabHighlight();
+          renderDimensionGrid();
+          renderTable();
+        });
+        dimensionList.addEventListener('change', () => {
+          renderDimensionGrid();
+          renderTable();
+        });
+      }
     })();
   </script>
 
