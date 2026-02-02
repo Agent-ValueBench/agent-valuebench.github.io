@@ -280,6 +280,8 @@ const sortedAgents = [...agents]
       const pageInfo = document.getElementById('pageInfo');
       const prevPage = document.getElementById('prevPage');
       const nextPage = document.getElementById('nextPage');
+      const systemSelect = document.getElementById('systemSelect');
+      const dimensionList = document.getElementById('dimensionList');
 
       let page = 1;
       const pageSize = 5;
@@ -299,6 +301,16 @@ const sortedAgents = [...agents]
       };
 
       const getSystem = (systemId) => systems.find((s) => s.id === systemId) || systems[0];
+
+      const getFiltersFromUI = () => {
+        if (!systemSelect || !dimensionList) {
+          return getFilters();
+        }
+        const dims = Array.from(dimensionList.querySelectorAll('input[type="checkbox"]'))
+          .filter((input) => input.checked)
+          .map((input) => input.value);
+        return { system: systemSelect.value, dims };
+      };
 
       const averageScore = (agent, systemId, dims) => {
         if (!dims.length) return 0;
@@ -387,8 +399,8 @@ const sortedAgents = [...agents]
         pageInfo.textContent = `Page ${page} of ${totalPages}`;
       };
 
-      const updateTabHighlight = () => {
-        const { system } = getFilters();
+      const updateTabHighlight = (overrideSystem = null) => {
+        const system = overrideSystem || getFilters().system;
         systemTags.querySelectorAll('button').forEach((btn) => {
           if (btn.dataset.systemTag === system) {
             btn.classList.add('bg-ink-900', 'text-ink-50', 'border-ink-900');
@@ -398,6 +410,13 @@ const sortedAgents = [...agents]
             btn.classList.add('bg-white/70', 'text-ink-700', 'border-ink-200');
           }
         });
+      };
+
+      const applyUiFilters = () => {
+        const detail = getFiltersFromUI();
+        updateTabHighlight(detail.system);
+        renderDimensionGrid(detail);
+        renderTable(detail);
       };
 
       systemTags.addEventListener('click', (event) => {
@@ -449,6 +468,15 @@ const sortedAgents = [...agents]
         renderTable(detail);
       });
 
+      if (systemSelect) {
+        systemSelect.addEventListener('change', () => {
+          requestAnimationFrame(applyUiFilters);
+        });
+      }
+      if (dimensionList) {
+        dimensionList.addEventListener('change', applyUiFilters);
+      }
+
       updateTabHighlight();
       renderDimensionGrid();
       renderTable();
@@ -466,6 +494,8 @@ const sortedAgents = [...agents]
       const radarChart = document.getElementById('radarChart');
       const barChart = document.getElementById('barChart');
       const caseList = document.getElementById('caseList');
+      const systemSelect = document.getElementById('systemSelect');
+      const dimensionList = document.getElementById('dimensionList');
 
       const getFilters = () => {
         const params = new URLSearchParams(window.location.search);
@@ -600,6 +630,13 @@ const sortedAgents = [...agents]
 
       window.addEventListener('avb:filters', renderAll);
       window.addEventListener('avb:tab', syncAgentFromQuery);
+
+      if (systemSelect) {
+        systemSelect.addEventListener('change', () => requestAnimationFrame(renderAll));
+      }
+      if (dimensionList) {
+        dimensionList.addEventListener('change', renderAll);
+      }
     })();
   </script>
 
@@ -615,6 +652,8 @@ const sortedAgents = [...agents]
       const comparisonRadar = document.getElementById('comparisonRadar');
       const comparisonTable = document.getElementById('comparisonTable');
       const legend = document.getElementById('legend');
+      const systemSelect = document.getElementById('systemSelect');
+      const dimensionList = document.getElementById('dimensionList');
 
       const getFilters = () => {
         const params = new URLSearchParams(window.location.search);
@@ -739,6 +778,13 @@ const sortedAgents = [...agents]
       });
 
       window.addEventListener('avb:filters', renderAll);
+
+      if (systemSelect) {
+        systemSelect.addEventListener('change', () => requestAnimationFrame(renderAll));
+      }
+      if (dimensionList) {
+        dimensionList.addEventListener('change', renderAll);
+      }
     })();
   </script>
 </BenchmarkLayout>
