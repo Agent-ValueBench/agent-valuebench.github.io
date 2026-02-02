@@ -29,6 +29,9 @@ const sortedAgents = [...agents]
 ---
 <BenchmarkLayout activeTab="benchmarks">
   <div class="space-y-10">
+    <script type="application/json" id="agentsData" set:html={serializedAgents}></script>
+    <script type="application/json" id="systemsData" set:html={serializedSystems}></script>
+    <script type="application/json" id="casesData" set:html={serializedCases}></script>
     <section class="card p-6" data-tab-panel="benchmarks">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -270,8 +273,8 @@ const sortedAgents = [...agents]
 
   <script>
     (() => {
-      const agents = JSON.parse(`{"agents":${serializedAgents}}`).agents;
-      const systems = JSON.parse(`{"systems":${serializedSystems}}`).systems;
+      const agents = JSON.parse(document.getElementById('agentsData').textContent);
+      const systems = JSON.parse(document.getElementById('systemsData').textContent);
       const systemTags = document.getElementById('systemTags');
       const dimensionScoreGrid = document.getElementById('dimensionScoreGrid');
       const leaderboardBody = document.getElementById('leaderboardBody');
@@ -485,9 +488,9 @@ const sortedAgents = [...agents]
 
   <script>
     (() => {
-      const agents = JSON.parse(`{"agents":${serializedAgents}}`).agents;
-      const systems = JSON.parse(`{"systems":${serializedSystems}}`).systems;
-      const cases = JSON.parse(`{"cases":${serializedCases}}`).cases;
+      const agents = JSON.parse(document.getElementById('agentsData').textContent);
+      const systems = JSON.parse(document.getElementById('systemsData').textContent);
+      const cases = JSON.parse(document.getElementById('casesData').textContent);
 
       const agentSelect = document.getElementById('agentSelect');
       const agentMeta = document.getElementById('agentMeta');
@@ -642,8 +645,8 @@ const sortedAgents = [...agents]
 
   <script>
     (() => {
-      const agents = JSON.parse(`{"agents":${serializedAgents}}`).agents;
-      const systems = JSON.parse(`{"systems":${serializedSystems}}`).systems;
+      const agents = JSON.parse(document.getElementById('agentsData').textContent);
+      const systems = JSON.parse(document.getElementById('systemsData').textContent);
 
       const agentA = document.getElementById('agentA');
       const agentB = document.getElementById('agentB');
