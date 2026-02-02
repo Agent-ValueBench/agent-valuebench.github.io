@@ -73,7 +73,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div class="text-xs uppercase tracking-wide text-ink-500">Leaderboard</div>
-            <div class="mt-2 font-display text-2xl font-semibold text-ink-900">Agent ranking for selected dimensions</div>
+            <div class="mt-2 font-display text-3xl font-semibold text-ink-900">Agent ranking for selected dimensions</div>
           </div>
           <div class="flex flex-wrap gap-3">
             <input
@@ -87,18 +87,11 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
             </select>
           </div>
         </div>
-        <div class="mt-6 overflow-auto">
-          <table class="w-full min-w-[900px] text-left text-sm">
+        <div class="mt-6 overflow-x-auto">
+          <table class="w-full min-w-[900px] text-left text-base">
             <thead id="leaderboardHead" class="text-xs uppercase text-ink-500"></thead>
             <tbody id="leaderboardBody" class="text-ink-700"></tbody>
           </table>
-        </div>
-        <div class="mt-6 flex flex-wrap items-center justify-between gap-4 text-sm text-ink-600">
-          <div id="pageInfo"></div>
-          <div class="flex gap-2">
-            <button class="btn-ghost" type="button" id="prevPage">Prev</button>
-            <button class="btn-ghost" type="button" id="nextPage">Next</button>
-          </div>
         </div>
       </div>
     </section>
@@ -228,14 +221,8 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       const leaderboardBody = document.getElementById('leaderboardBody');
       const agentSearch = document.getElementById('agentSearch');
       const sortSelect = document.getElementById('sortSelect');
-      const pageInfo = document.getElementById('pageInfo');
-      const prevPage = document.getElementById('prevPage');
-      const nextPage = document.getElementById('nextPage');
       const systemSelect = document.getElementById('systemSelect');
       const dimensionList = document.getElementById('dimensionList');
-
-      let page = 1;
-      const pageSize = 5;
 
       const getFilters = () => {
         const params = new URLSearchParams(window.location.search);
@@ -356,10 +343,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
           return a.name.localeCompare(b.name);
         });
 
-        const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-        page = Math.min(page, totalPages);
-        const start = (page - 1) * pageSize;
-        const paged = sorted.slice(start, start + pageSize);
+        const paged = sorted;
         leaderboardBody.innerHTML = '';
 
         const buildRankLabel = (rank, showBadge) => {
@@ -390,7 +374,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         }
 
         paged.forEach((agent, index) => {
-          const rank = dimSortMatch ? agent._rank : start + index + 1;
+          const rank = dimSortMatch ? agent._rank : index + 1;
           const row = document.createElement('tr');
           row.className = 'border-t border-ink-100';
           const scoreCells = selectedDimensions
@@ -415,7 +399,6 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
           leaderboardBody.appendChild(row);
         });
 
-        pageInfo.textContent = `Page ${page} of ${totalPages}`;
       };
 
       const updateSortOptions = (override = null) => {
@@ -487,19 +470,9 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       });
 
       agentSearch.addEventListener('input', () => {
-        page = 1;
         renderTable();
       });
       sortSelect.addEventListener('change', () => {
-        page = 1;
-        renderTable();
-      });
-      prevPage.addEventListener('click', () => {
-        page = Math.max(1, page - 1);
-        renderTable();
-      });
-      nextPage.addEventListener('click', () => {
-        page += 1;
         renderTable();
       });
 
@@ -516,7 +489,6 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         if (!button) return;
         const dimId = button.dataset.sortDim;
         sortSelect.value = `dim:${dimId}`;
-        page = 1;
         renderTable();
       });
 
