@@ -42,14 +42,18 @@ const sortedAgents = [...agents]
           <button
             type="button"
             data-system-tag={system.id}
-            class="rounded-full border border-ink-200 bg-white/70 px-4 py-2 text-sm font-semibold text-ink-700 transition hover:border-ink-400"
+            class={`rounded-full border px-4 py-2 text-sm font-semibold transition hover:border-ink-400 ${
+              system.id === initialSystem.id ? 'border-ink-900 bg-ink-900 text-ink-50' : 'border-ink-200 bg-white/70 text-ink-700'
+            }`}
           >
             {system.name}
           </button>
         ))}
       </div>
       <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3" id="dimensionScoreGrid">
-        {initialSystem.dimensions.map((dim) => {
+        {initialSystem.dimensions
+          .filter((dim) => dimsToUse.includes(dim.id))
+          .map((dim) => {
           const avg = Math.round(
             agents.reduce((sum, agent) => {
               const score =
@@ -59,12 +63,9 @@ const sortedAgents = [...agents]
               return sum + score;
             }, 0) / agents.length
           );
-          const isActive = !dimsToUse.length || dimsToUse.includes(dim.id);
           return (
             <div
-              class={`rounded-2xl border px-4 py-4 ${
-                isActive ? 'border-ink-200 bg-white/80' : 'border-ink-100 bg-white/50 opacity-60'
-              }`}
+              class="rounded-2xl border border-ink-200 bg-white/80 px-4 py-4"
             >
               <div class="text-sm font-semibold text-ink-800">{dim.name}</div>
               <div class="mt-1 text-xs text-ink-500">{dim.description}</div>
@@ -382,11 +383,11 @@ const sortedAgents = [...agents]
         const { system } = getFilters();
         systemTags.querySelectorAll('button').forEach((btn) => {
           if (btn.dataset.systemTag === system) {
-            btn.classList.add('bg-ink-900', 'text-ink-50');
-            btn.classList.remove('bg-white/70', 'text-ink-700');
+            btn.classList.add('bg-ink-900', 'text-ink-50', 'border-ink-900');
+            btn.classList.remove('bg-white/70', 'text-ink-700', 'border-ink-200');
           } else {
-            btn.classList.remove('bg-ink-900', 'text-ink-50');
-            btn.classList.add('bg-white/70', 'text-ink-700');
+            btn.classList.remove('bg-ink-900', 'text-ink-50', 'border-ink-900');
+            btn.classList.add('bg-white/70', 'text-ink-700', 'border-ink-200');
           }
         });
       };
