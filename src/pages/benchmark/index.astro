@@ -23,17 +23,17 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
     <section class="card p-6" data-tab-panel="benchmarks">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div class="text-xs uppercase tracking-wide text-ink-500">Value System Focus</div>
-          <div class="mt-2 font-display text-2xl font-semibold text-ink-900">Explore dimensions within each system</div>
+          <div class="text-sm uppercase tracking-wide text-ink-500">Value System Focus</div>
+          <div class="mt-2 font-display text-3xl font-semibold text-ink-900">Explore dimensions within each system</div>
         </div>
-        <div class="text-sm text-ink-500">Quick switch systems (mirrors global filter).</div>
+        <div class="text-base text-ink-500">Quick switch systems (mirrors global filter).</div>
       </div>
       <div class="mt-6 flex flex-wrap gap-2" id="systemTags">
         {valueSystems.map((system) => (
           <button
             type="button"
             data-system-tag={system.id}
-            class={`rounded-full border px-4 py-2 text-sm font-semibold transition hover:border-ink-400 ${
+            class={`rounded-full border px-4 py-2 text-base font-semibold transition hover:border-ink-400 ${
               system.id === initialSystem.id ? 'border-ink-900 bg-ink-900 text-ink-50' : 'border-ink-200 bg-white/70 text-ink-700'
             }`}
           >
@@ -58,11 +58,11 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
             <div
               class="rounded-2xl border border-ink-200 bg-white/80 px-4 py-4"
             >
-              <div class="text-sm font-semibold text-ink-800">{dim.name}</div>
-              <div class="mt-1 text-xs text-ink-500">{dim.description}</div>
+              <div class="text-base font-semibold text-ink-800">{dim.name}</div>
+              <div class="mt-1 text-sm text-ink-500">{dim.description}</div>
               <div class="mt-4 flex items-end justify-between">
-                <div class="text-xs uppercase tracking-wide text-ink-400">Avg score</div>
-                <div class="font-display text-2xl font-semibold text-ink-900">{avg}</div>
+                <div class="text-sm uppercase tracking-wide text-ink-400">Avg score</div>
+                <div class="font-display text-3xl font-semibold text-ink-900">{avg}</div>
               </div>
             </div>
           );
@@ -275,11 +275,11 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
           const card = document.createElement('div');
           card.className = 'rounded-2xl border border-ink-200 bg-white/80 px-4 py-4';
           card.innerHTML = `
-            <div class="text-sm font-semibold text-ink-800">${dim.name}</div>
-            <div class="mt-1 text-xs text-ink-500">${dim.description}</div>
+            <div class="text-base font-semibold text-ink-800">${dim.name}</div>
+            <div class="mt-1 text-sm text-ink-500">${dim.description}</div>
             <div class="mt-4 flex items-end justify-between">
-              <div class="text-xs uppercase tracking-wide text-ink-400">Avg score</div>
-              <div class="font-display text-2xl font-semibold text-ink-900">${avg}</div>
+              <div class="text-sm uppercase tracking-wide text-ink-400">Avg score</div>
+              <div class="font-display text-3xl font-semibold text-ink-900">${avg}</div>
             </div>
           `;
           dimensionScoreGrid.appendChild(card);
