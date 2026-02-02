@@ -303,20 +303,22 @@ const sortedAgents = [...agents]
         return Math.round(total / scores.length);
       };
 
-      const renderDimensionGrid = () => {
-        const { system, dims } = getFilters();
+      const renderDimensionGrid = (override = null) => {
+        const { system, dims } = override || getFilters();
         const systemData = getSystem(system);
+        const dimsToShow = dims.length ? dims : systemData.dimensions.map((dim) => dim.id);
         dimensionScoreGrid.innerHTML = '';
-        systemData.dimensions.forEach((dim) => {
+        systemData.dimensions
+          .filter((dim) => dimsToShow.includes(dim.id))
+          .forEach((dim) => {
           const avg = Math.round(
             agents.reduce((sum, agent) => {
               const score = agent.scores.find((s) => s.systemId === system && s.dimensionId === dim.id)?.score || 0;
               return sum + score;
             }, 0) / agents.length
           );
-          const isActive = !dims.length || dims.includes(dim.id);
           const card = document.createElement('div');
-          card.className = `rounded-2xl border px-4 py-4 ${isActive ? 'border-ink-200 bg-white/80' : 'border-ink-100 bg-white/50 opacity-60'}`;
+          card.className = 'rounded-2xl border border-ink-200 bg-white/80 px-4 py-4';
           card.innerHTML = `
             <div class="text-sm font-semibold text-ink-800">${dim.name}</div>
             <div class="mt-1 text-xs text-ink-500">${dim.description}</div>
@@ -329,8 +331,8 @@ const sortedAgents = [...agents]
         });
       };
 
-      const renderTable = () => {
-        const { system, dims } = getFilters();
+      const renderTable = (override = null) => {
+        const { system, dims } = override || getFilters();
         const search = agentSearch.value.toLowerCase();
         const rows = agents
           .filter((agent) => agent.name.toLowerCase().includes(search))
@@ -405,7 +407,7 @@ const sortedAgents = [...agents]
           params.delete('dims');
         }
         window.avbUpdateParams(params);
-        window.avbEmitFilters();
+        window.avbEmitFilters({ system, dims });
       });
 
       document.addEventListener('click', (event) => {
@@ -443,10 +445,11 @@ const sortedAgents = [...agents]
         renderTable();
       });
 
-      window.addEventListener('avb:filters', () => {
+      window.addEventListener('avb:filters', (event) => {
+        const detail = event.detail || null;
         updateTabHighlight();
-        renderDimensionGrid();
-        renderTable();
+        renderDimensionGrid(detail);
+        renderTable(detail);
       });
 
       updateTabHighlight();

@@ -202,8 +202,8 @@ const serializedSystems = JSON.stringify(valueSystems);
       history.replaceState({}, '', url);
     };
 
-    const emitFilters = () => {
-      window.dispatchEvent(new CustomEvent('avb:filters'));
+    const emitFilters = (detail) => {
+      window.dispatchEvent(new CustomEvent('avb:filters', { detail }));
     };
 
     const setTab = (tabId, updateUrl = true) => {
@@ -248,7 +248,7 @@ const serializedSystems = JSON.stringify(valueSystems);
         params.delete('dims');
       }
       updateUrlParams(params);
-      emitFilters();
+      emitFilters({ system, dims });
     });
 
     resetFilters.addEventListener('click', () => {
@@ -259,7 +259,7 @@ const serializedSystems = JSON.stringify(valueSystems);
       params.delete('system');
       params.delete('dims');
       updateUrlParams(params);
-      emitFilters();
+      emitFilters({ system: valueSystems[0].id, dims: [] });
     });
 
     tabLinks.forEach((btn) => {
