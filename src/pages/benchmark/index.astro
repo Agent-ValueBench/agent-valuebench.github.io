@@ -559,12 +559,15 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
           const score = agent.scores.find((s) => s.systemId === systemId && s.dimensionId === dim.id)?.score || 0;
           const angle = (Math.PI * 2 * index) / dimensions.length - Math.PI / 2;
           const r = (score / 100) * radius;
+          const labelText = dim.name;
+          const shortLabel = labelText.length > 12 ? `${labelText.slice(0, 12)}…` : labelText;
           return {
             x: center + r * Math.cos(angle),
             y: center + r * Math.sin(angle),
             labelX: center + (radius + 18) * Math.cos(angle),
             labelY: center + (radius + 18) * Math.sin(angle),
-            label: dim.name,
+            label: shortLabel,
+            fullLabel: labelText,
           };
         });
 
@@ -583,7 +586,9 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
             <polygon points="${polygon}" fill="rgba(46, 139, 87, 0.35)" stroke="#2e8b57" stroke-width="2" />
             ${points
               .map(
-                (p) => `<text x="${p.labelX}" y="${p.labelY}" text-anchor="middle" font-size="10" fill="#6f5435">${p.label}</text>`
+                (p) => `<text x="${p.labelX}" y="${p.labelY}" text-anchor="middle" font-size="10" fill="#6f5435">
+                  <title>${p.fullLabel}</title>${p.label}
+                </text>`
               )
               .join('')}
           </svg>
