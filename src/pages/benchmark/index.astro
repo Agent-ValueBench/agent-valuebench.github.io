@@ -288,15 +288,21 @@ const sortedAgents = [...agents]
         const params = new URLSearchParams(window.location.search);
         const stored = JSON.parse(localStorage.getItem('avb-filters') || 'null');
         const system = params.get('system') || stored?.system || systems[0].id;
-        const dims = params.get('dims')?.split(',') || stored?.dims || [];
+        const dimsParam = params.get('dims');
+        const hasStoredDims = stored && Array.isArray(stored.dims);
+        const dims = dimsParam !== null
+          ? dimsParam.split(',').filter(Boolean)
+          : hasStoredDims
+            ? stored.dims
+            : (getSystem(system).dimensions.map((dim) => dim.id));
         return { system, dims };
       };
 
       const getSystem = (systemId) => systems.find((s) => s.id === systemId) || systems[0];
 
       const averageScore = (agent, systemId, dims) => {
-        const systemDims = getSystem(systemId).dimensions.map((d) => d.id);
-        const dimsToUse = dims.length ? dims : systemDims;
+        if (!dims.length) return 0;
+        const dimsToUse = dims;
         const scores = agent.scores.filter((score) => score.systemId === systemId && dimsToUse.includes(score.dimensionId));
         if (!scores.length) return 0;
         const total = scores.reduce((sum, s) => sum + s.score, 0);
@@ -306,7 +312,7 @@ const sortedAgents = [...agents]
       const renderDimensionGrid = (override = null) => {
         const { system, dims } = override || getFilters();
         const systemData = getSystem(system);
-        const dimsToShow = dims.length ? dims : systemData.dimensions.map((dim) => dim.id);
+        const dimsToShow = dims;
         dimensionScoreGrid.innerHTML = '';
         systemData.dimensions
           .filter((dim) => dimsToShow.includes(dim.id))
@@ -398,16 +404,7 @@ const sortedAgents = [...agents]
         const btn = event.target.closest('button[data-system-tag]');
         if (!btn) return;
         window.avbSetSystem(btn.dataset.systemTag);
-        const { system, dims } = window.avbPersistFilters();
-        const params = new URLSearchParams(window.location.search);
-        params.set('system', system);
-        if (dims.length) {
-          params.set('dims', dims.join(','));
-        } else {
-          params.delete('dims');
-        }
-        window.avbUpdateParams(params);
-        window.avbEmitFilters({ system, dims });
+        window.avbSyncFilters();
       });
 
       document.addEventListener('click', (event) => {
@@ -473,10 +470,15 @@ const sortedAgents = [...agents]
       const getFilters = () => {
         const params = new URLSearchParams(window.location.search);
         const stored = JSON.parse(localStorage.getItem('avb-filters') || 'null');
-        return {
-          system: params.get('system') || stored?.system || systems[0].id,
-          dims: params.get('dims')?.split(',') || stored?.dims || [],
-        };
+        const system = params.get('system') || stored?.system || systems[0].id;
+        const dimsParam = params.get('dims');
+        const hasStoredDims = stored && Array.isArray(stored.dims);
+        const dims = dimsParam !== null
+          ? dimsParam.split(',').filter(Boolean)
+          : hasStoredDims
+            ? stored.dims
+            : (systems.find((s) => s.id === system) || systems[0]).dimensions.map((dim) => dim.id);
+        return { system, dims };
       };
 
       const getAgent = (id) => agents.find((agent) => agent.id === id) || agents[0];
@@ -494,7 +496,7 @@ const sortedAgents = [...agents]
 
       const renderRadar = (agent, systemId, dims) => {
         const system = systems.find((s) => s.id === systemId) || systems[0];
-        const dimensions = system.dimensions.filter((dim) => !dims.length || dims.includes(dim.id));
+        const dimensions = system.dimensions.filter((dim) => dims.includes(dim.id));
         const size = 220;
         const center = size / 2;
         const radius = 80;
@@ -535,7 +537,7 @@ const sortedAgents = [...agents]
 
       const renderBars = (agent, systemId, dims) => {
         const system = systems.find((s) => s.id === systemId) || systems[0];
-        const dimensions = system.dimensions.filter((dim) => !dims.length || dims.includes(dim.id));
+        const dimensions = system.dimensions.filter((dim) => dims.includes(dim.id));
         barChart.innerHTML = '';
         dimensions.forEach((dim) => {
           const score = agent.scores.find((s) => s.systemId === systemId && s.dimensionId === dim.id)?.score || 0;
@@ -554,9 +556,9 @@ const sortedAgents = [...agents]
       };
 
       const renderCases = (systemId, dims) => {
-        const filtered = cases.filter((item) => item.systemId === systemId && (!dims.length || dims.includes(item.dimensionId)));
+        const filtered = cases.filter((item) => item.systemId === systemId && dims.includes(item.dimensionId));
         caseList.innerHTML = '';
-        (filtered.length ? filtered : cases).forEach((item) => {
+        filtered.forEach((item) => {
           const card = document.createElement('div');
           card.className = 'rounded-2xl border border-ink-100 bg-white/80 p-4';
           card.innerHTML = `
@@ -617,10 +619,15 @@ const sortedAgents = [...agents]
       const getFilters = () => {
         const params = new URLSearchParams(window.location.search);
         const stored = JSON.parse(localStorage.getItem('avb-filters') || 'null');
-        return {
-          system: params.get('system') || stored?.system || systems[0].id,
-          dims: params.get('dims')?.split(',') || stored?.dims || [],
-        };
+        const system = params.get('system') || stored?.system || systems[0].id;
+        const dimsParam = params.get('dims');
+        const hasStoredDims = stored && Array.isArray(stored.dims);
+        const dims = dimsParam !== null
+          ? dimsParam.split(',').filter(Boolean)
+          : hasStoredDims
+            ? stored.dims
+            : (systems.find((s) => s.id === system) || systems[0]).dimensions.map((dim) => dim.id);
+        return { system, dims };
       };
 
       const getAgent = (id) => agents.find((agent) => agent.id === id) || agents[0];
@@ -640,7 +647,7 @@ const sortedAgents = [...agents]
 
       const renderRadar = (agentList, systemId, dims) => {
         const system = systems.find((s) => s.id === systemId) || systems[0];
-        const dimensions = system.dimensions.filter((dim) => !dims.length || dims.includes(dim.id));
+        const dimensions = system.dimensions.filter((dim) => dims.includes(dim.id));
         const size = 240;
         const center = size / 2;
         const radius = 80;
@@ -683,7 +690,7 @@ const sortedAgents = [...agents]
 
       const renderTable = (agentOne, agentTwo, systemId, dims) => {
         const system = systems.find((s) => s.id === systemId) || systems[0];
-        const dimensions = system.dimensions.filter((dim) => !dims.length || dims.includes(dim.id));
+        const dimensions = system.dimensions.filter((dim) => dims.includes(dim.id));
         comparisonTable.innerHTML = '';
         dimensions.forEach((dim) => {
           const scoreA = agentOne.scores.find((s) => s.systemId === systemId && s.dimensionId === dim.id)?.score || 0;

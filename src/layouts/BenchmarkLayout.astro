@@ -60,7 +60,6 @@ const serializedSystems = JSON.stringify(valueSystems);
         </div>
         <div class="flex flex-wrap gap-3">
           <button class="btn-ghost" type="button" id="resetFilters">Reset</button>
-          <button class="btn-primary" type="button" id="applyFilters">Apply</button>
         </div>
       </div>
       <div class="mt-6 grid gap-6 lg:grid-cols-[220px,1fr]">
@@ -131,7 +130,6 @@ const serializedSystems = JSON.stringify(valueSystems);
     const systemLabel = document.getElementById('systemLabel');
     const selectAllDims = document.getElementById('selectAllDims');
     const clearDims = document.getElementById('clearDims');
-    const applyFilters = document.getElementById('applyFilters');
     const resetFilters = document.getElementById('resetFilters');
     const tabLinks = document.querySelectorAll('[data-tab-link]');
     const tabPanels = document.querySelectorAll('[data-tab-panel]');
@@ -141,15 +139,22 @@ const serializedSystems = JSON.stringify(valueSystems);
     const stored = JSON.parse(localStorage.getItem('avb-filters') || 'null');
 
     const initialSystem = paramSystem || stored?.system || valueSystems[0].id;
-    const initialDims = (paramDims ? paramDims.split(',') : stored?.dims) || [];
+    const hasStoredDims = stored && Array.isArray(stored.dims);
+    const initialDims = paramDims
+      ? paramDims.split(',').filter(Boolean)
+      : hasStoredDims
+        ? stored.dims
+        : (valueSystems.find((system) => system.id === initialSystem) || valueSystems[0]).dimensions.map(
+            (dim) => dim.id
+          );
 
     const renderDimensions = (systemId, selectedIds = null) => {
       const system = valueSystems.find((s) => s.id === systemId) || valueSystems[0];
       systemLabel.textContent = system.name;
       dimensionList.innerHTML = '';
       system.dimensions.forEach((dim) => {
-        const checkedIds = selectedIds ?? initialDims;
-        const checked = checkedIds.length ? checkedIds.includes(dim.id) : true;
+        const checkedIds = selectedIds ?? system.dimensions.map((item) => item.id);
+        const checked = checkedIds.includes(dim.id);
         const wrapper = document.createElement('label');
         wrapper.className = 'flex items-center gap-2 rounded-xl border border-ink-100 bg-white/70 px-3 py-2 text-sm';
         const input = document.createElement('input');
@@ -169,15 +174,20 @@ const serializedSystems = JSON.stringify(valueSystems);
     renderDimensions(initialSystem, initialDims);
 
     systemSelect.addEventListener('change', (event) => {
-      renderDimensions(event.target.value, []);
+      const systemId = event.target.value;
+      const system = valueSystems.find((s) => s.id === systemId) || valueSystems[0];
+      renderDimensions(systemId, system.dimensions.map((dim) => dim.id));
+      syncFilters();
     });
 
     selectAllDims.addEventListener('click', () => {
       dimensionList.querySelectorAll('input[type="checkbox"]').forEach((input) => (input.checked = true));
+      syncFilters();
     });
 
     clearDims.addEventListener('click', () => {
       dimensionList.querySelectorAll('input[type="checkbox"]').forEach((input) => (input.checked = false));
+      syncFilters();
     });
 
     const getSelectedDims = () =>
@@ -204,6 +214,19 @@ const serializedSystems = JSON.stringify(valueSystems);
 
     const emitFilters = (detail) => {
       window.dispatchEvent(new CustomEvent('avb:filters', { detail }));
+    };
+
+    const syncFilters = () => {
+      const { system, dims } = persistFilters();
+      const params = new URLSearchParams(window.location.search);
+      params.set('system', system);
+      if (dims.length) {
+        params.set('dims', dims.join(','));
+      } else {
+        params.delete('dims');
+      }
+      updateUrlParams(params);
+      emitFilters({ system, dims });
     };
 
     const setTab = (tabId, updateUrl = true) => {
@@ -237,29 +260,15 @@ const serializedSystems = JSON.stringify(valueSystems);
     window.avbEmitFilters = emitFilters;
     window.avbPersistFilters = persistFilters;
     window.avbSetSystem = setSystem;
-
-    applyFilters.addEventListener('click', () => {
-      const { system, dims } = persistFilters();
-      const params = new URLSearchParams(window.location.search);
-      params.set('system', system);
-      if (dims.length) {
-        params.set('dims', dims.join(','));
-      } else {
-        params.delete('dims');
-      }
-      updateUrlParams(params);
-      emitFilters({ system, dims });
-    });
+    window.avbSyncFilters = syncFilters;
 
     resetFilters.addEventListener('click', () => {
       localStorage.removeItem('avb-filters');
-      systemSelect.value = valueSystems[0].id;
-      renderDimensions(systemSelect.value, []);
-      const params = new URLSearchParams(window.location.search);
-      params.delete('system');
-      params.delete('dims');
-      updateUrlParams(params);
-      emitFilters({ system: valueSystems[0].id, dims: [] });
+      const systemId = valueSystems[0].id;
+      const defaultDims = valueSystems[0].dimensions.map((dim) => dim.id);
+      systemSelect.value = systemId;
+      renderDimensions(systemId, defaultDims);
+      syncFilters();
     });
 
     tabLinks.forEach((btn) => {
@@ -271,6 +280,12 @@ const serializedSystems = JSON.stringify(valueSystems);
 
     const initialTab = new URLSearchParams(window.location.search).get('tab') || 'benchmarks';
     setTab(initialTab, false);
+
+    dimensionList.addEventListener('change', (event) => {
+      if (event.target.matches('input[type="checkbox"]')) {
+        syncFilters();
+      }
+    });
 
     window.addEventListener('pagehide', saveScroll);
     document.addEventListener('visibilitychange', () => {
