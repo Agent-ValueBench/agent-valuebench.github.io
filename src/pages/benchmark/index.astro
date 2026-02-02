@@ -301,7 +301,20 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
 
       const renderLeaderboardHead = (selectedDimensions) => {
         const dimensionHeaders = selectedDimensions
-          .map((dim) => `<th class="py-3 pr-4">${dim.name}</th>`)
+          .map(
+            (dim) => `
+              <th class="py-3 pr-4">
+                <button
+                  type="button"
+                  class="inline-flex items-center gap-1 font-semibold text-ink-500 transition hover:text-ink-900"
+                  data-sort-dim="${dim.id}"
+                  title="Sort by ${dim.name}"
+                >
+                  <span class="border-b border-dashed border-ink-300 pb-0.5">${dim.name}</span>
+                </button>
+              </th>
+            `
+          )
           .join('');
         leaderboardHead.innerHTML = `
           <tr>
@@ -477,7 +490,10 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         page = 1;
         renderTable();
       });
-      sortSelect.addEventListener('change', renderTable);
+      sortSelect.addEventListener('change', () => {
+        page = 1;
+        renderTable();
+      });
       prevPage.addEventListener('click', () => {
         page = Math.max(1, page - 1);
         renderTable();
@@ -493,6 +509,15 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         updateSortOptions(detail);
         renderDimensionGrid(detail);
         renderTable(detail);
+      });
+
+      leaderboardHead.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-sort-dim]');
+        if (!button) return;
+        const dimId = button.dataset.sortDim;
+        sortSelect.value = `dim:${dimId}`;
+        page = 1;
+        renderTable();
       });
 
       if (systemSelect) {

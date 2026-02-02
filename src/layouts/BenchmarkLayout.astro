@@ -255,7 +255,8 @@ const serializedSystems = JSON.stringify(valueSystems);
 
     const setSystem = (systemId) => {
       systemSelect.value = systemId;
-      renderDimensions(systemId, []);
+      const system = valueSystems.find((s) => s.id === systemId) || valueSystems[0];
+      renderDimensions(systemId, system.dimensions.map((dim) => dim.id));
     };
 
     window.avbSetTab = setTab;
