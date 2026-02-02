@@ -148,6 +148,8 @@ const serializedSystems = JSON.stringify(valueSystems);
             (dim) => dim.id
           );
 
+    let syncFilters = () => {};
+
     const renderDimensions = (systemId, selectedIds = null) => {
       const system = valueSystems.find((s) => s.id === systemId) || valueSystems[0];
       systemLabel.textContent = system.name;
@@ -162,6 +164,7 @@ const serializedSystems = JSON.stringify(valueSystems);
         input.value = dim.id;
         input.checked = checked;
         input.className = 'accent-ink-900';
+        input.addEventListener('change', () => syncFilters());
         const span = document.createElement('span');
         span.textContent = dim.name;
         wrapper.appendChild(input);
@@ -216,7 +219,7 @@ const serializedSystems = JSON.stringify(valueSystems);
       window.dispatchEvent(new CustomEvent('avb:filters', { detail }));
     };
 
-    const syncFilters = () => {
+    syncFilters = () => {
       const { system, dims } = persistFilters();
       const params = new URLSearchParams(window.location.search);
       params.set('system', system);
@@ -281,11 +284,6 @@ const serializedSystems = JSON.stringify(valueSystems);
     const initialTab = new URLSearchParams(window.location.search).get('tab') || 'benchmarks';
     setTab(initialTab, false);
 
-    dimensionList.addEventListener('change', (event) => {
-      if (event.target.matches('input[type="checkbox"]')) {
-        syncFilters();
-      }
-    });
 
     window.addEventListener('pagehide', saveScroll);
     document.addEventListener('visibilitychange', () => {
