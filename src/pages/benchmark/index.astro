@@ -232,6 +232,10 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
           </div>
         </div>
       </div>
+      <div class="mt-8 rounded-2xl border border-ink-100 bg-white/80 p-5">
+        <div class="text-sm font-semibold text-ink-800">Dimension bars</div>
+        <div class="mt-4 space-y-4" id="comparisonBars"></div>
+      </div>
 
       <div class="mt-8 rounded-2xl border border-ink-100 bg-white/80 p-5">
         <div class="text-xs uppercase tracking-wide text-ink-500">Case-level comparison</div>
@@ -799,6 +803,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       const compareAgentsGrid = document.getElementById('compareAgentsGrid');
       const comparisonRadar = document.getElementById('comparisonRadar');
       const comparisonTable = document.getElementById('comparisonTable');
+      const comparisonBars = document.getElementById('comparisonBars');
       const legend = document.getElementById('legend');
       const systemSelect = document.getElementById('systemSelect');
       const dimensionList = document.getElementById('dimensionList');
@@ -880,6 +885,14 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
           slot.classList.toggle('cursor-pointer', swapActive && hasAgent);
           slot.classList.toggle('border-ink-200', swapActive && hasAgent);
           slot.classList.toggle('bg-ink-50/40', swapActive && hasAgent);
+        });
+      };
+
+      const updateSwapLockState = () => {
+        agentSelects.forEach((select) => {
+          select.disabled = swapActive;
+          select.classList.toggle('opacity-60', swapActive);
+          select.classList.toggle('cursor-not-allowed', swapActive);
         });
       };
 
@@ -983,6 +996,40 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         });
       };
 
+      const renderBars = (agentList, systemId, dims) => {
+        const system = systems.find((s) => s.id === systemId) || systems[0];
+        const dimensions = system.dimensions.filter((dim) => dims.includes(dim.id));
+        const colors = ['#2e8b57', '#5a64ff', '#f39b33', '#d64f7b', '#0ea5a8'];
+        comparisonBars.innerHTML = '';
+        if (!agentList.length) {
+          comparisonBars.innerHTML = '<div class="text-sm text-ink-500">No agents selected yet.</div>';
+          return;
+        }
+        dimensions.forEach((dim) => {
+          const row = document.createElement('div');
+          row.className = 'space-y-2';
+          const bars = agentList
+            .map((agent, index) => {
+              const score = agent.scores.find((s) => s.systemId === systemId && s.dimensionId === dim.id)?.score || 0;
+              return `
+                <div class="flex items-center gap-3">
+                  <span class="w-20 text-xs text-ink-500">${agent.name}</span>
+                  <div class="h-2 w-full rounded-full bg-ink-100">
+                    <div class="h-2 rounded-full" style="width:${score}%;background:${colors[index]}"></div>
+                  </div>
+                  <span class="w-8 text-xs text-ink-600">${score}</span>
+                </div>
+              `;
+            })
+            .join('');
+          row.innerHTML = `
+            <div class="text-xs font-semibold uppercase tracking-wide text-ink-500">${dim.name}</div>
+            <div class="space-y-2">${bars}</div>
+          `;
+          comparisonBars.appendChild(row);
+        });
+      };
+
       const renderAll = () => {
         const { system, dims } = getFilters();
         const list = agentSelects
@@ -991,6 +1038,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         renderRadar(list, system, dims);
         renderTable(list[0] || null, list[1] || null, system, dims);
         renderLegend(list);
+        renderBars(list, system, dims);
       };
 
       const clearSwapSelection = () => {
@@ -1004,11 +1052,14 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         swapActive = active;
         swapAgents.classList.toggle('bg-ink-900', active);
         swapAgents.classList.toggle('text-ink-50', active);
+        swapAgents.classList.toggle('hover:bg-ink-900', active);
+        swapAgents.style.color = active ? '#f8f5ef' : '';
         swapAgents.setAttribute('aria-pressed', active ? 'true' : 'false');
         if (!active) {
           clearSwapSelection();
         }
         updateSwapHints();
+        updateSwapLockState();
       };
 
       applyListToSelects(getCompareList());
