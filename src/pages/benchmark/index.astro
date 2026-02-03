@@ -404,7 +404,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
           .join('');
         leaderboardHead.innerHTML = `
           <tr>
-            <th class="py-3 pr-4">Rank</th>
+            <th class="py-3 pr-4 text-center">Rank</th>
             <th class="py-3 pr-4">Agent Name</th>
             <th class="py-3 pr-4">Developer</th>
             ${dimensionHeaders}
@@ -480,7 +480,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
             .map((dim) => `<td class="py-4 pr-4 font-semibold text-ink-900">${agent.dimensionScores[dim.id] ?? 0}</td>`)
             .join('');
           row.innerHTML = `
-            <td class="py-4 pr-4 font-semibold">${buildRankLabel(rank, showRankBadges)}</td>
+            <td class="py-4 pr-4 text-center font-semibold">${buildRankLabel(rank, showRankBadges)}</td>
             <td class="py-4 pr-4">
               <div class="font-semibold text-ink-900">${agent.name}</div>
               <div class="text-xs text-ink-500">${agent.type}</div>
