@@ -552,7 +552,10 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         if (compare) {
           const id = compare.dataset.compare;
           const stored = getCompareList();
-          if (!stored.includes(id) && stored.length < compareLimit) {
+          if (stored.includes(id)) {
+            const next = stored.filter((item) => item !== id);
+            setCompareList(next);
+          } else if (stored.length < compareLimit) {
             stored.push(id);
             setCompareList(stored);
           }
@@ -698,7 +701,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
             <polygon points="${polygon}" fill="rgba(46, 139, 87, 0.35)" stroke="#2e8b57" stroke-width="2" />
             ${points
               .map(
-                (p) => `<text x="${p.labelX}" y="${p.labelY}" text-anchor="middle" dominant-baseline="middle" font-size="12" fill="#6f5435">
+                (p) => `<text x="${p.labelX}" y="${p.labelY}" text-anchor="middle" dominant-baseline="middle" font-size="14" fill="#6f5435">
                   <title>${p.label}</title>${p.label}
                 </text>`
               )
