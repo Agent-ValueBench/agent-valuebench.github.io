@@ -921,9 +921,9 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       const renderRadar = (agentList, systemId, dims) => {
         const system = systems.find((s) => s.id === systemId) || systems[0];
         const dimensions = system.dimensions.filter((dim) => dims.includes(dim.id));
-        const size = 240;
+        const size = 340;
         const center = size / 2;
-        const radius = 80;
+        const radius = 120;
         const colors = ['#2e8b57', '#5a64ff', '#f39b33', '#d64f7b', '#0ea5a8'];
 
         const polygonFor = (agent) =>
@@ -944,11 +944,20 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
             <circle cx="${center}" cy="${center}" r="${radius * 0.66}" fill="none" stroke="#e6dfd5" />
             <circle cx="${center}" cy="${center}" r="${radius * 0.33}" fill="none" stroke="#efe8dd" />
             ${dimensions
-              .map((_, index) => {
+              .map((dim, index) => {
                 const angle = (Math.PI * 2 * index) / dimensions.length - Math.PI / 2;
                 const x = center + radius * Math.cos(angle);
                 const y = center + radius * Math.sin(angle);
-                return `<line x1="${center}" y1="${center}" x2="${x}" y2="${y}" stroke="#e6dfd5" />`;
+                const labelX = center + (radius + 22) * Math.cos(angle);
+                const labelY = center + (radius + 22) * Math.sin(angle);
+                const anchor = labelX >= center ? 'start' : 'end';
+                const shortLabel = dim.name.length > 14 ? `${dim.name.slice(0, 14)}…` : dim.name;
+                return `
+                  <line x1="${center}" y1="${center}" x2="${x}" y2="${y}" stroke="#e6dfd5" />
+                  <text x="${labelX}" y="${labelY}" text-anchor="${anchor}" font-size="11" fill="#6f5435">
+                    <title>${dim.name}</title>${shortLabel}
+                  </text>
+                `;
               })
               .join('')}
             ${agentList
