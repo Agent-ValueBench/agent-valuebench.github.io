@@ -157,45 +157,55 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         <button class="btn-ghost" type="button" id="swapAgents">Swap</button>
       </div>
       <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-5" id="compareAgentsGrid">
-        <div data-agent-slot="A" data-agent-slot-index="0" class="rounded-2xl border border-transparent p-2 transition">
+        <div data-agent-slot="A" data-agent-slot-index="0" class="relative rounded-2xl border border-transparent p-2 transition">
           <label class="text-xs uppercase tracking-wide text-ink-500">Agent A</label>
           <select id="agentA" class="mt-2 w-full rounded-xl border border-ink-200 bg-white/80 px-3 py-2 text-sm">
+            <option value="">Empty</option>
             {agents.map((agent) => (
               <option value={agent.id}>{agent.name}</option>
             ))}
           </select>
+          <button type="button" class="absolute right-2 top-2 hidden h-5 w-5 items-center justify-center rounded-full bg-ink-100 text-xs text-ink-600 transition hover:bg-ink-200" data-compare-slot-remove="0" aria-label="Remove Agent A">&times;</button>
         </div>
-        <div data-agent-slot="B" data-agent-slot-index="1" class="rounded-2xl border border-transparent p-2 transition">
+        <div data-agent-slot="B" data-agent-slot-index="1" class="relative rounded-2xl border border-transparent p-2 transition">
           <label class="text-xs uppercase tracking-wide text-ink-500">Agent B</label>
           <select id="agentB" class="mt-2 w-full rounded-xl border border-ink-200 bg-white/80 px-3 py-2 text-sm">
+            <option value="">Empty</option>
             {agents.map((agent) => (
               <option value={agent.id}>{agent.name}</option>
             ))}
           </select>
+          <button type="button" class="absolute right-2 top-2 hidden h-5 w-5 items-center justify-center rounded-full bg-ink-100 text-xs text-ink-600 transition hover:bg-ink-200" data-compare-slot-remove="1" aria-label="Remove Agent B">&times;</button>
         </div>
-        <div data-agent-slot="C" data-agent-slot-index="2" class="rounded-2xl border border-transparent p-2 transition">
+        <div data-agent-slot="C" data-agent-slot-index="2" class="relative rounded-2xl border border-transparent p-2 transition">
           <label class="text-xs uppercase tracking-wide text-ink-500">Agent C</label>
           <select id="agentC" class="mt-2 w-full rounded-xl border border-ink-200 bg-white/80 px-3 py-2 text-sm">
+            <option value="">Empty</option>
             {agents.map((agent) => (
               <option value={agent.id}>{agent.name}</option>
             ))}
           </select>
+          <button type="button" class="absolute right-2 top-2 hidden h-5 w-5 items-center justify-center rounded-full bg-ink-100 text-xs text-ink-600 transition hover:bg-ink-200" data-compare-slot-remove="2" aria-label="Remove Agent C">&times;</button>
         </div>
-        <div data-agent-slot="D" data-agent-slot-index="3" class="rounded-2xl border border-transparent p-2 transition">
+        <div data-agent-slot="D" data-agent-slot-index="3" class="relative rounded-2xl border border-transparent p-2 transition">
           <label class="text-xs uppercase tracking-wide text-ink-500">Agent D</label>
           <select id="agentD" class="mt-2 w-full rounded-xl border border-ink-200 bg-white/80 px-3 py-2 text-sm">
+            <option value="">Empty</option>
             {agents.map((agent) => (
               <option value={agent.id}>{agent.name}</option>
             ))}
           </select>
+          <button type="button" class="absolute right-2 top-2 hidden h-5 w-5 items-center justify-center rounded-full bg-ink-100 text-xs text-ink-600 transition hover:bg-ink-200" data-compare-slot-remove="3" aria-label="Remove Agent D">&times;</button>
         </div>
-        <div data-agent-slot="E" data-agent-slot-index="4" class="rounded-2xl border border-transparent p-2 transition">
+        <div data-agent-slot="E" data-agent-slot-index="4" class="relative rounded-2xl border border-transparent p-2 transition">
           <label class="text-xs uppercase tracking-wide text-ink-500">Agent E</label>
           <select id="agentE" class="mt-2 w-full rounded-xl border border-ink-200 bg-white/80 px-3 py-2 text-sm">
+            <option value="">Empty</option>
             {agents.map((agent) => (
               <option value={agent.id}>{agent.name}</option>
             ))}
           </select>
+          <button type="button" class="absolute right-2 top-2 hidden h-5 w-5 items-center justify-center rounded-full bg-ink-100 text-xs text-ink-600 transition hover:bg-ink-200" data-compare-slot-remove="4" aria-label="Remove Agent E">&times;</button>
         </div>
       </div>
 
@@ -298,6 +308,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       const setCompareList = (list) => {
         const normalized = normalizeCompareList(list);
         localStorage.setItem('avb-compare', JSON.stringify(normalized));
+        window.dispatchEvent(new CustomEvent('avb:compare', { detail: normalized }));
         return normalized;
       };
 
@@ -600,6 +611,10 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       renderDimensionGrid();
       renderTable();
       renderCompareQueue();
+      window.avbRefreshCompare = () => {
+        renderCompareQueue();
+        syncCompareButtons();
+      };
     })();
   </script>
 
@@ -754,6 +769,11 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       });
 
       window.addEventListener('avb:filters', renderAll);
+      window.addEventListener('avb:compare', (event) => {
+        const list = Array.isArray(event.detail) ? event.detail : getCompareList();
+        applyListToSelects(list);
+        renderAll();
+      });
       window.addEventListener('avb:tab', syncAgentFromQuery);
 
       if (systemSelect) {
@@ -801,23 +821,88 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         return { system, dims };
       };
 
-      const getAgent = (id) => agents.find((agent) => agent.id === id) || agents[0];
+      const getAgent = (id) => agents.find((agent) => agent.id === id) || null;
 
-      const loadCompareFromStorage = () => {
-        const stored = JSON.parse(localStorage.getItem('avb-compare') || '[]');
+      const normalizeCompareList = (list) => {
         const validIds = new Set(agents.map((agent) => agent.id));
         const unique = [];
-        (Array.isArray(stored) ? stored : []).forEach((id) => {
+        list.forEach((id) => {
           if (validIds.has(id) && !unique.includes(id)) {
             unique.push(id);
           }
         });
-        const normalized = unique.slice(0, compareLimit);
+        return unique.slice(0, compareLimit);
+      };
+
+      const getCompareList = () => {
+        const stored = JSON.parse(localStorage.getItem('avb-compare') || '[]');
+        const normalized = normalizeCompareList(Array.isArray(stored) ? stored : []);
         localStorage.setItem('avb-compare', JSON.stringify(normalized));
-        const fallback = agents.map((agent) => agent.id);
-        agentSelects.forEach((select, index) => {
-          select.value = normalized[index] || fallback[index] || agents[0].id;
+        return normalized;
+      };
+
+      const setCompareList = (list) => {
+        const normalized = normalizeCompareList(list);
+        localStorage.setItem('avb-compare', JSON.stringify(normalized));
+        window.dispatchEvent(new CustomEvent('avb:compare', { detail: normalized }));
+        if (window.avbRefreshCompare) {
+          window.avbRefreshCompare();
+        }
+        return normalized;
+      };
+
+      const updateRemoveButtons = () => {
+        compareAgentsGrid.querySelectorAll('[data-compare-slot-remove]').forEach((button) => {
+          const index = Number(button.dataset.compareSlotRemove);
+          const hasAgent = Boolean(agentSelects[index]?.value);
+          button.classList.toggle('hidden', !hasAgent);
+          button.classList.toggle('inline-flex', hasAgent);
         });
+      };
+
+      const updateSelectOptions = () => {
+        const selected = agentSelects.map((select) => select.value).filter(Boolean);
+        agentSelects.forEach((select) => {
+          Array.from(select.options).forEach((option) => {
+            if (!option.value) {
+              option.disabled = false;
+              return;
+            }
+            const taken = selected.includes(option.value) && option.value !== select.value;
+            option.disabled = taken;
+          });
+        });
+      };
+
+      const updateSwapHints = () => {
+        compareAgentsGrid.querySelectorAll('[data-agent-slot]').forEach((slot, index) => {
+          const hasAgent = Boolean(agentSelects[index]?.value);
+          slot.classList.toggle('cursor-pointer', swapActive && hasAgent);
+          slot.classList.toggle('border-ink-200', swapActive && hasAgent);
+          slot.classList.toggle('bg-ink-50/40', swapActive && hasAgent);
+        });
+      };
+
+      const applyListToSelects = (list) => {
+        agentSelects.forEach((select, index) => {
+          select.value = list[index] || '';
+        });
+        updateSelectOptions();
+        updateRemoveButtons();
+        updateSwapHints();
+      };
+
+      const syncCompareFromSelects = () => {
+        const list = [];
+        agentSelects.forEach((select) => {
+          const value = select.value;
+          if (value && !list.includes(value)) {
+            list.push(value);
+          }
+        });
+        const normalized = setCompareList(list);
+        applyListToSelects(normalized);
+        return normalized;
       };
 
       const renderRadar = (agentList, systemId, dims) => {
@@ -864,6 +949,10 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       };
 
       const renderTable = (agentOne, agentTwo, systemId, dims) => {
+        if (!agentOne || !agentTwo) {
+          comparisonTable.innerHTML = '';
+          return;
+        }
         const system = systems.find((s) => s.id === systemId) || systems[0];
         const dimensions = system.dimensions.filter((dim) => dims.includes(dim.id));
         comparisonTable.innerHTML = '';
@@ -896,21 +985,13 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
 
       const renderAll = () => {
         const { system, dims } = getFilters();
-        const list = [
-          getAgent(agentA.value),
-          getAgent(agentB.value),
-          getAgent(agentC.value),
-          getAgent(agentD.value),
-          getAgent(agentE.value),
-        ];
+        const list = agentSelects
+          .map((select) => getAgent(select.value))
+          .filter((agent) => agent);
         renderRadar(list, system, dims);
-        renderTable(list[0], list[1], system, dims);
+        renderTable(list[0] || null, list[1] || null, system, dims);
         renderLegend(list);
       };
-
-      loadCompareFromStorage();
-      renderAll();
-      setSwapActive(false);
 
       const clearSwapSelection = () => {
         swapSelection = [];
@@ -927,14 +1008,34 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         if (!active) {
           clearSwapSelection();
         }
+        updateSwapHints();
       };
 
-      agentSelects.forEach((select) => select.addEventListener('change', renderAll));
+      applyListToSelects(getCompareList());
+      renderAll();
+      setSwapActive(false);
+
+      agentSelects.forEach((select) => select.addEventListener('change', () => {
+        syncCompareFromSelects();
+        renderAll();
+      }));
       swapAgents.addEventListener('click', () => {
         setSwapActive(!swapActive);
       });
 
       compareAgentsGrid.addEventListener('click', (event) => {
+        const removeButton = event.target.closest('[data-compare-slot-remove]');
+        if (removeButton) {
+          const index = Number(removeButton.dataset.compareSlotRemove);
+          const list = getCompareList();
+          if (!Number.isNaN(index)) {
+            list.splice(index, 1);
+            const normalized = setCompareList(list);
+            applyListToSelects(normalized);
+            renderAll();
+          }
+          return;
+        }
         if (!swapActive) return;
         const slot = event.target.closest('[data-agent-slot]');
         if (!slot) return;
@@ -942,6 +1043,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         event.stopPropagation();
         const index = Number(slot.dataset.agentSlotIndex);
         if (Number.isNaN(index) || swapSelection.includes(index)) return;
+        if (!agentSelects[index]?.value) return;
         swapSelection.push(index);
         slot.classList.add('ring-2', 'ring-ink-900', 'bg-ink-50/70');
         if (swapSelection.length === 2) {
@@ -951,6 +1053,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
           const temp = firstSelect.value;
           firstSelect.value = secondSelect.value;
           secondSelect.value = temp;
+          syncCompareFromSelects();
           renderAll();
           clearSwapSelection();
         }
@@ -959,7 +1062,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       window.addEventListener('avb:filters', renderAll);
       window.addEventListener('avb:tab', (event) => {
         if (event.detail === 'comparison') {
-          loadCompareFromStorage();
+          applyListToSelects(getCompareList());
           renderAll();
           setSwapActive(false);
         }
