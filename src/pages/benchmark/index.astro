@@ -921,7 +921,8 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       const renderRadar = (agentList, systemId, dims) => {
         const system = systems.find((s) => s.id === systemId) || systems[0];
         const dimensions = system.dimensions.filter((dim) => dims.includes(dim.id));
-        const size = 380;
+        const size = 360;
+        const pad = 50;
         const center = size / 2;
         const radius = 130;
         const colors = ['#2e8b57', '#5a64ff', '#f39b33', '#d64f7b', '#0ea5a8'];
@@ -939,7 +940,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
             .join(' ');
 
         comparisonRadar.innerHTML = `
-          <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" class="mx-auto">
+          <svg width="${size}" height="${size}" viewBox="${-pad} ${-pad} ${size + pad * 2} ${size + pad * 2}" class="mx-auto" overflow="visible">
             <circle cx="${center}" cy="${center}" r="${radius}" fill="none" stroke="#d9d2c7" stroke-dasharray="4 4" />
             <circle cx="${center}" cy="${center}" r="${radius * 0.66}" fill="none" stroke="#e6dfd5" />
             <circle cx="${center}" cy="${center}" r="${radius * 0.33}" fill="none" stroke="#efe8dd" />
