@@ -75,14 +75,14 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
             <div class="text-xs uppercase tracking-wide text-ink-500">Leaderboard</div>
             <div class="mt-2 font-display text-3xl font-semibold text-ink-900">Agent ranking for selected dimensions</div>
           </div>
-          <div class="flex w-full flex-col items-end gap-3 lg:w-auto lg:min-w-[560px]">
-            <div class="flex w-full items-center justify-end gap-2 text-xs">
+          <div class="flex w-full flex-col items-start gap-3 lg:w-auto lg:min-w-[560px]">
+            <div class="flex w-full items-center justify-start gap-2 text-xs">
               <span class="uppercase tracking-wide text-ink-400">Compare list</span>
-              <div class="max-w-[420px] overflow-x-auto" id="compareQueueWrap">
+              <div class="overflow-visible" id="compareQueueWrap">
                 <div class="inline-flex min-h-[30px] items-center gap-2 whitespace-nowrap" id="compareQueue"></div>
               </div>
             </div>
-            <div class="flex w-full justify-end gap-3">
+            <div class="flex w-full justify-start gap-3">
               <input
                 id="agentSearch"
                 type="text"
