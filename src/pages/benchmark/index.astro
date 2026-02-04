@@ -385,21 +385,29 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         });
       };
 
-      const renderLeaderboardHead = (selectedDimensions) => {
+      const renderLeaderboardHead = (selectedDimensions, activeDimId) => {
         const dimensionHeaders = selectedDimensions
           .map(
-            (dim) => `
+            (dim) => {
+              const isActive = dim.id === activeDimId;
+              return `
               <th class="py-3 pr-4">
                 <button
                   type="button"
-                  class="inline-flex items-center gap-1 font-semibold text-ink-500 transition hover:text-ink-900"
+                  class="inline-flex items-center gap-1 font-semibold transition ${
+                    isActive ? 'text-ink-900' : 'text-ink-500 hover:text-ink-900'
+                  }"
                   data-sort-dim="${dim.id}"
                   title="Sort by ${dim.name}"
                 >
-                  <span class="border-b border-dashed border-ink-300 pb-0.5">${dim.name}</span>
+                  <span class="border-b border-dashed pb-0.5 ${
+                    isActive ? 'border-ink-900' : 'border-ink-300'
+                  }">${dim.name}</span>
+                  ${isActive ? '<span class="text-[10px] uppercase tracking-wide text-ink-400">(Sorted)</span>' : ''}
                 </button>
               </th>
-            `
+            `;
+            }
           )
           .join('');
         leaderboardHead.innerHTML = `
@@ -418,7 +426,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       const renderTable = (override = null) => {
         const { system, dims } = override || getFilters();
         const selectedDimensions = getSelectedDimensions(system, dims);
-        renderLeaderboardHead(selectedDimensions);
+        renderLeaderboardHead(selectedDimensions, dimSortMatch);
         const search = agentSearch.value.toLowerCase();
         const rows = agents
           .filter((agent) => agent.name.toLowerCase().includes(search))
