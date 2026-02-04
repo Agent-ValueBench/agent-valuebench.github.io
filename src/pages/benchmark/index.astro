@@ -426,7 +426,6 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       const renderTable = (override = null) => {
         const { system, dims } = override || getFilters();
         const selectedDimensions = getSelectedDimensions(system, dims);
-        renderLeaderboardHead(selectedDimensions, dimSortMatch);
         const search = agentSearch.value.toLowerCase();
         const rows = agents
           .filter((agent) => agent.name.toLowerCase().includes(search))
@@ -440,6 +439,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
 
         const sortValue = sortSelect.value || 'name-asc';
         const dimSortMatch = sortValue.startsWith('dim:') ? sortValue.slice(4) : null;
+        renderLeaderboardHead(selectedDimensions, dimSortMatch);
         const sorted = rows.sort((a, b) => {
           if (dimSortMatch) {
             const scoreA = a.dimensionScores[dimSortMatch] ?? 0;
