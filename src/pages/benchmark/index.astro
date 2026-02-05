@@ -1201,10 +1201,10 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
 
       const buildRadarSvg = (detail) => {
         const { agents, dimensions, systemId } = detail;
-        const size = 520;
-        const pad = 90;
+        const size = 700;
+        const pad = 110;
         const center = size / 2;
-        const radius = 200;
+        const radius = 290;
 
         const dimAngles = dimensions.map((dim, index) => ({
           dim,
@@ -1229,8 +1229,8 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
                 const labelX = center + (p.score / 100 * radius + 14) * Math.cos(p.angle);
                 const labelY = center + (p.score / 100 * radius + 14) * Math.sin(p.angle);
                 return `
-                  <circle cx="${p.x}" cy="${p.y}" r="4" fill="${colors[agentIndex]}" />
-                  <text x="${labelX}" y="${labelY}" text-anchor="middle" dominant-baseline="middle" font-size="12" fill="${colors[agentIndex]}">${p.score}</text>
+                  <circle cx="${p.x}" cy="${p.y}" r="6" fill="${colors[agentIndex]}" />
+                  <text x="${labelX}" y="${labelY}" text-anchor="middle" dominant-baseline="middle" font-size="16" fill="${colors[agentIndex]}">${p.score}</text>
                 `;
               })
               .join('');
@@ -1243,11 +1243,11 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
 
         const labels = dimAngles
           .map(({ dim, angle }) => {
-            const x = center + (radius + 36) * Math.cos(angle);
-            const y = center + (radius + 36) * Math.sin(angle);
+            const x = center + (radius + 48) * Math.cos(angle);
+            const y = center + (radius + 48) * Math.sin(angle);
             return `
               <line x1="${center}" y1="${center}" x2="${center + radius * Math.cos(angle)}" y2="${center + radius * Math.sin(angle)}" stroke="#e6dfd5" />
-              <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-size="14" fill="#6f5435">
+              <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-size="18" fill="#6f5435">
                 <title>${dim.name}</title>${dim.name}
               </text>
             `;
