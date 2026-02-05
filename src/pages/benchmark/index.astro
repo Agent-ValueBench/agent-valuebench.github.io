@@ -249,6 +249,19 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
     </section>
   </div>
 
+  <div id="radarModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-ink-900/40 p-4">
+    <div
+      id="radarModalPanel"
+      class="w-full max-w-5xl scale-95 rounded-2xl bg-white p-6 shadow-xl opacity-0 transition duration-300 ease-out"
+    >
+      <div class="flex items-center justify-between">
+        <div class="text-sm font-semibold text-ink-800" id="radarModalTitle">Radar overlay</div>
+        <button type="button" id="radarModalClose" class="btn-ghost">Close</button>
+      </div>
+      <div class="mt-4 flex justify-center" id="radarModalChart"></div>
+    </div>
+  </div>
+
   <script>
     (() => {
       const agents = JSON.parse(document.getElementById('agentsData').textContent);
@@ -675,6 +688,8 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         `;
       };
 
+      let lastRadarDetail = null;
+
       const renderRadar = (agent, systemId, dims) => {
         const system = systems.find((s) => s.id === systemId) || systems[0];
         const dimensions = system.dimensions.filter((dim) => dims.includes(dim.id));
@@ -717,6 +732,13 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
               .join('')}
           </svg>
         `;
+        lastRadarDetail = {
+          title: 'Radar: Value dimensions',
+          agents: [agent],
+          dimensions,
+          systemId,
+        };
+        radarChart.classList.add('cursor-zoom-in');
       };
 
       const renderBars = (agent, systemId, dims) => {
@@ -796,6 +818,12 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       if (dimensionList) {
         dimensionList.addEventListener('change', renderAll);
       }
+
+      radarChart.addEventListener('click', () => {
+        if (window.avbOpenRadarModal && lastRadarDetail) {
+          window.avbOpenRadarModal(lastRadarDetail);
+        }
+      });
     })();
   </script>
 
@@ -821,6 +849,7 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       const agentSelects = [agentA, agentB, agentC, agentD, agentE];
       let swapActive = false;
       let swapSelection = [];
+      let lastComparisonDetail = null;
 
       const getFilters = () => {
         const params = new URLSearchParams(window.location.search);
@@ -1057,6 +1086,15 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
         renderTable(list[0] || null, list[1] || null, system, dims);
         renderLegend(list);
         renderBars(list, system, dims);
+        const systemData = systems.find((s) => s.id === system) || systems[0];
+        const dimensions = systemData.dimensions.filter((dim) => dims.includes(dim.id));
+        lastComparisonDetail = {
+          title: 'Radar overlay',
+          agents: list,
+          dimensions,
+          systemId: system,
+        };
+        comparisonRadar.classList.add('cursor-zoom-in');
       };
 
       const clearSwapSelection = () => {
@@ -1143,6 +1181,122 @@ const dimsToUse = initialDims.length ? initialDims : initialSystem.dimensions.ma
       if (dimensionList) {
         dimensionList.addEventListener('change', renderAll);
       }
+
+      comparisonRadar.addEventListener('click', () => {
+        if (window.avbOpenRadarModal && lastComparisonDetail) {
+          window.avbOpenRadarModal(lastComparisonDetail);
+        }
+      });
+    })();
+  </script>
+
+  <script>
+    (() => {
+      const modal = document.getElementById('radarModal');
+      const panel = document.getElementById('radarModalPanel');
+      const chart = document.getElementById('radarModalChart');
+      const title = document.getElementById('radarModalTitle');
+      const closeBtn = document.getElementById('radarModalClose');
+      const colors = ['#2e8b57', '#5a64ff', '#f39b33', '#d64f7b', '#0ea5a8'];
+
+      const buildRadarSvg = (detail) => {
+        const { agents, dimensions, systemId } = detail;
+        const size = 520;
+        const pad = 90;
+        const center = size / 2;
+        const radius = 200;
+
+        const dimAngles = dimensions.map((dim, index) => ({
+          dim,
+          angle: (Math.PI * 2 * index) / dimensions.length - Math.PI / 2,
+        }));
+
+        const scoreFor = (agent, dimId) =>
+          agent.scores.find((score) => score.systemId === systemId && score.dimensionId === dimId)?.score ?? 0;
+
+        const polygons = agents
+          .map((agent, agentIndex) => {
+            const points = dimAngles.map(({ dim, angle }) => {
+              const score = scoreFor(agent, dim.id);
+              const r = (score / 100) * radius;
+              const x = center + r * Math.cos(angle);
+              const y = center + r * Math.sin(angle);
+              return { x, y, score, angle, dimId: dim.id };
+            });
+            const polygon = points.map((p) => `${p.x},${p.y}`).join(' ');
+            const dots = points
+              .map((p) => {
+                const labelX = center + (p.score / 100 * radius + 14) * Math.cos(p.angle);
+                const labelY = center + (p.score / 100 * radius + 14) * Math.sin(p.angle);
+                return `
+                  <circle cx="${p.x}" cy="${p.y}" r="4" fill="${colors[agentIndex]}" />
+                  <text x="${labelX}" y="${labelY}" text-anchor="middle" dominant-baseline="middle" font-size="12" fill="${colors[agentIndex]}">${p.score}</text>
+                `;
+              })
+              .join('');
+            return `
+              <polygon points="${polygon}" fill="${colors[agentIndex]}33" stroke="${colors[agentIndex]}" stroke-width="2" />
+              ${dots}
+            `;
+          })
+          .join('');
+
+        const labels = dimAngles
+          .map(({ dim, angle }) => {
+            const x = center + (radius + 36) * Math.cos(angle);
+            const y = center + (radius + 36) * Math.sin(angle);
+            return `
+              <line x1="${center}" y1="${center}" x2="${center + radius * Math.cos(angle)}" y2="${center + radius * Math.sin(angle)}" stroke="#e6dfd5" />
+              <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" font-size="14" fill="#6f5435">
+                <title>${dim.name}</title>${dim.name}
+              </text>
+            `;
+          })
+          .join('');
+
+        return `
+          <svg width="${size}" height="${size}" viewBox="${-pad} ${-pad} ${size + pad * 2} ${size + pad * 2}" class="mx-auto" overflow="visible">
+            <circle cx="${center}" cy="${center}" r="${radius}" fill="none" stroke="#d9d2c7" stroke-dasharray="4 4" />
+            <circle cx="${center}" cy="${center}" r="${radius * 0.66}" fill="none" stroke="#e6dfd5" />
+            <circle cx="${center}" cy="${center}" r="${radius * 0.33}" fill="none" stroke="#efe8dd" />
+            ${labels}
+            ${polygons}
+          </svg>
+        `;
+      };
+
+      const openModal = (detail) => {
+        if (!detail?.agents?.length || !detail?.dimensions?.length) {
+          return;
+        }
+        title.textContent = detail.title || 'Radar overlay';
+        chart.innerHTML = buildRadarSvg(detail);
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        requestAnimationFrame(() => {
+          panel.classList.remove('opacity-0');
+          panel.classList.add('opacity-100');
+          panel.classList.remove('scale-95');
+          panel.classList.add('scale-100');
+        });
+      };
+
+      const closeModal = () => {
+        panel.classList.remove('opacity-100');
+        panel.classList.add('opacity-0');
+        panel.classList.remove('scale-100');
+        panel.classList.add('scale-95');
+        setTimeout(() => {
+          modal.classList.add('hidden');
+          modal.classList.remove('flex');
+        }, 200);
+      };
+
+      window.avbOpenRadarModal = openModal;
+      closeBtn.addEventListener('click', closeModal);
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) closeModal();
+      });
     })();
   </script>
 </BenchmarkLayout>
